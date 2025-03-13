@@ -1,0 +1,182 @@
+import fs from "fs";
+import path from "path";
+import { db } from "../database/db";
+
+export interface Workspace {
+  id: number;
+  name: string;
+  path: string;
+  createdAt: Date;
+}
+
+export interface ChatMessage {
+  id: number;
+  workspaceId: number;
+  role: "user" | "planner" | "system";
+  content: string;
+  timestamp: Date;
+}
+
+// Database row types
+interface WorkspaceRow {
+  id: number;
+  name: string;
+  path: string;
+  created_at: string;
+}
+
+interface ChatHistoryRow {
+  id: number;
+  workspace_id: number;
+  role: "user" | "planner" | "system";
+  content: string;
+  timestamp: string;
+}
+
+export class WorkspaceManager {
+  private currentWorkspace: Workspace | null = null;
+
+  constructor() {}
+
+  /**
+   * Create a new workspace
+   */
+  createWorkspace(name: string, basePath: string): Workspace {
+    const workspacePath = path.join(basePath, name);
+
+    // Create workspace directory if it doesn't exist
+    if (!fs.existsSync(workspacePath)) {
+      fs.mkdirSync(workspacePath, { recursive: true });
+    }
+
+    // Create results directory inside workspace
+    const resultsPath = path.join(workspacePath, "results");
+    if (!fs.existsSync(resultsPath)) {
+      fs.mkdirSync(resultsPath);
+    }
+
+    // Create logs directory inside workspace
+    const logsPath = path.join(workspacePath, "logs");
+    if (!fs.existsSync(logsPath)) {
+      fs.mkdirSync(logsPath);
+    }
+
+    // Insert workspace into database
+    const stmt = db.prepare(
+      "INSERT INTO workspaces (name, path) VALUES (?, ?)"
+    );
+    const result = stmt.run(name, workspacePath);
+
+    const workspace: Workspace = {
+      id: result.lastInsertRowid as number,
+      name,
+      path: workspacePath,
+      createdAt: new Date(),
+    };
+
+    this.currentWorkspace = workspace;
+    return workspace;
+  }
+
+  /**
+   * Get all workspaces
+   */
+  getAllWorkspaces(): Workspace[] {
+    const rows = db
+      .prepare("SELECT * FROM workspaces ORDER BY created_at DESC")
+      .all() as WorkspaceRow[];
+    return rows.map((row: WorkspaceRow) => ({
+      id: row.id,
+      name: row.name,
+      path: row.path,
+      createdAt: new Date(row.created_at),
+    }));
+  }
+
+  /**
+   * Open an existing workspace
+   */
+  openWorkspace(id: number): Workspace | null {
+    const row = db.prepare("SELECT * FROM workspaces WHERE id = ?").get(id) as
+      | WorkspaceRow
+      | undefined;
+
+    if (!row) return null;
+
+    const workspace: Workspace = {
+      id: row.id,
+      name: row.name,
+      path: row.path,
+      createdAt: new Date(row.created_at),
+    };
+
+    this.currentWorkspace = workspace;
+    return workspace;
+  }
+
+  /**
+   * Get current workspace
+   */
+  getCurrentWorkspace(): Workspace | null {
+    return this.currentWorkspace;
+  }
+
+  /**
+   * Save chat message to history
+   */
+  saveChatMessage(role: "user" | "planner" | "system", content: string): void {
+    if (!this.currentWorkspace) {
+      throw new Error("No workspace is currently open");
+    }
+
+    const stmt = db.prepare(
+      "INSERT INTO chat_history (workspace_id, role, content) VALUES (?, ?, ?)"
+    );
+    stmt.run(this.currentWorkspace.id, role, content);
+  }
+
+  /**
+   * Get chat history for current workspace
+   */
+  getChatHistory(): ChatMessage[] {
+    if (!this.currentWorkspace) {
+      return [];
+    }
+
+    const rows = db
+      .prepare(
+        "SELECT * FROM chat_history WHERE workspace_id = ? ORDER BY timestamp ASC"
+      )
+      .all(this.currentWorkspace.id) as ChatHistoryRow[];
+
+    return rows.map((row: ChatHistoryRow) => ({
+      id: row.id,
+      workspaceId: row.workspace_id,
+      role: row.role,
+      content: row.content,
+      timestamp: new Date(row.timestamp),
+    }));
+  }
+
+  /**
+   * Get the results directory path for the current workspace
+   */
+  getResultsPath(): string {
+    if (!this.currentWorkspace) {
+      throw new Error("No workspace is currently open");
+    }
+
+    return path.join(this.currentWorkspace.path, "results");
+  }
+
+  /**
+   * Get the logs directory path for the current workspace
+   */
+  getLogsPath(): string {
+    if (!this.currentWorkspace) {
+      throw new Error("No workspace is currently open");
+    }
+
+    return path.join(this.currentWorkspace.path, "logs");
+  }
+}
