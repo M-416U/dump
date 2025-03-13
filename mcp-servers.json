@@ -1,0 +1,17 @@
+[
+  {
+    "id": "figma-developer-mcp",
+    "name": "Figma Developer Mcp",
+    "version": "1.0.0",
+    "transportType": "sse",
+    "transportConfig": {
+      "endpoint": "http://localhost:3333/sse",
+      "messageEndpoint": "http://localhost:3333/messages"
+    },
+    "capabilities": {
+      "tools": {},
+      "resources": {}
+    },
+    "autoConnect": true
+  }
+]
