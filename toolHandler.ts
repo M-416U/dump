@@ -78,8 +78,8 @@ export const toolHandlers: Record<string, ToolHandler> = {
 
   WRITETOFILE: async ({ content, resultsDir }: ToolParams): Promise<string> => {
     if (!content) return "No content provided";
-    const pathMatch = content.match(/<path>(.*?)<\/path>/);
-    const contentMatch = content.match(/<content>(.*?)<\/content>/);
+    const pathMatch = content.match(/<path>(.*?)<\/path>/s);
+    const contentMatch = content.match(/<content>(.*?)<\/content>/s);
     if (pathMatch && contentMatch) {
       const filePath = path.join(resultsDir, pathMatch[1]!.trim());
       const fileContent = contentMatch[1]!.trim();
@@ -101,5 +101,12 @@ export const toolHandlers: Record<string, ToolHandler> = {
     } catch (error: any) {
       return `Error parsing MCP JSON: ${error.message}`;
     }
+  },
+  DONE: async ({ content }: ToolParams) => {
+    if (!content) return "No question provided";
+    const completed = content.trim();
+    return await askUser(
+      `Task Completed:\n${completed}\n Anything i can help you with =>`
+    );
   },
 };

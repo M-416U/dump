@@ -10,6 +10,24 @@ const normalizeSearch = (str: string): string => {
     .trim(); // Remove leading and trailing spaces
 };
 
+const fixDiff = (arr: string[]) => {
+  return arr
+    .filter((line) => {
+      // Remove lines that start with -
+      if (line.startsWith("-")) {
+        return false;
+      }
+      return true;
+    })
+    .map((line) => {
+      // For lines starting with +, remove the + and add 2 spaces
+      if (line.startsWith("+ ")) {
+        return "  " + line.substring(2);
+      }
+      return line;
+    });
+};
+
 /**
  * Replaces a code block in a file content with a new code block
  * @param fileContent The content of the file
@@ -45,7 +63,7 @@ export function replaceCodeInFile(
   }
 
   // Preserve the exact formatting for the replace block
-  const replacementLines = replaceString.split("\n");
+  let replacementLines = fixDiff(replaceString.split("\n"));
 
   // Rebuild content with replacement (preserving the replace block formatting)
   return [

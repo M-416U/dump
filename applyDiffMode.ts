@@ -1,6 +1,6 @@
 import fsExtra from "fs-extra";
 import path from "path";
-import { applyPatch, parsePatch } from "diff";
+import { applyPatch, parsePatch, type ParsedDiff } from "diff";
 import { replaceCodeInFile } from "./processReplaceInFile.js";
 
 interface ErrorWithIndex {
@@ -75,7 +75,9 @@ function extractDiffBlocks(input: string): string[] {
   const codeRegex = /<CODE>\s*([\s\S]*?)\s*<\/CODE>/g;
   let codeMatch: RegExpExecArray | null;
   while ((codeMatch = codeRegex.exec(input)) !== null) {
-    blocks.push(codeMatch[1].trim());
+    if (codeMatch[1]) {
+      blocks.push(codeMatch[1].trim());
+    }
   }
 
   // Then check for DIFFBLOCK blocks
@@ -83,7 +85,9 @@ function extractDiffBlocks(input: string): string[] {
     const diffBlockRegex = /<DIFFBLOCK>\s*([\s\S]*?)\s*<\/DIFFBLOCK>/g;
     let diffMatch: RegExpExecArray | null;
     while ((diffMatch = diffBlockRegex.exec(input)) !== null) {
-      blocks.push(diffMatch[1].trim());
+      if (diffMatch[1]) {
+        blocks.push(diffMatch[1].trim());
+      }
     }
   }
 
@@ -92,7 +96,9 @@ function extractDiffBlocks(input: string): string[] {
     const replaceRegex = /<REPLACEINFILE>\s*([\s\S]*?)\s*<\/REPLACEINFILE>/g;
     let replaceMatch: RegExpExecArray | null;
     while ((replaceMatch = replaceRegex.exec(input)) !== null) {
-      blocks.push(replaceMatch[1].trim());
+      if (replaceMatch[1]) {
+        blocks.push(replaceMatch[1].trim());
+      }
     }
   }
 
@@ -114,7 +120,7 @@ function processNewFile(diffBlock: string, baseDir: string): Error | null {
     }
 
     // Extract the file path, removing the "b/" prefix if present
-    const filePath = filePathMatch[1].trim().replace(/^b\//, "");
+    const filePath = filePathMatch[1]?.trim().replace(/^b\//, "") ?? "";
     const fullPath = path.join(baseDir, filePath);
 
     console.log(`Processing new file: ${filePath} (full path: ${fullPath})`);
@@ -175,7 +181,7 @@ function processDeletedFile(diffBlock: string, baseDir: string): Error | null {
       throw new Error("Could not find file path in delete block.");
     }
 
-    const filePath = filePathMatch[1].trim();
+    const filePath = filePathMatch[1]?.trim() ?? "";
     const fullPath = path.join(baseDir, filePath);
 
     if (fsExtra.existsSync(fullPath)) {
@@ -205,7 +211,7 @@ function processModifiedFile(diffBlock: string, baseDir: string): Error | null {
     }
 
     // Extract the file path, removing the "b/" prefix if present
-    const filePath = filePathMatch[1].trim().replace(/^b\//, "");
+    const filePath = filePathMatch[1]?.trim().replace(/^b\//, "") ?? "";
     const fullPath = path.join(baseDir, filePath);
 
     console.log(
@@ -237,7 +243,7 @@ function processModifiedFile(diffBlock: string, baseDir: string): Error | null {
       throw new Error(`Failed to parse patch for ${filePath}`);
     }
 
-    const patchedContent = applyPatch(fileContent, patches[0], {
+    const patchedContent = applyPatch(fileContent, patches[0] as ParsedDiff, {
       fuzzFactor: 10,
     });
 
@@ -269,9 +275,9 @@ export function processReplaceInFile(
     if (!pathMatch || !diffMatch) {
       throw new Error("Invalid <REPLACEINFILE> format");
     }
-    const filePath = pathMatch[1].trim();
+    const filePath = pathMatch[1]?.trim() ?? "";
     const fullPath = path.join(baseDir, filePath);
-    let diffContent = diffMatch[1].trim();
+    let diffContent = diffMatch[1]?.trim() ?? "";
 
     // 2. Determine File Existence
     if (!fsExtra.existsSync(fullPath)) {
@@ -344,8 +350,8 @@ function improvedConstructNewFileContent(
       throw new Error(`Malformed SEARCH/REPLACE block (#${index + 1})`);
     }
 
-    const searchPart = match[1].trimEnd();
-    const replacePart = match[2].trimEnd();
+    const searchPart = match[1]?.trimEnd() ?? "";
+    const replacePart = match[2]?.trimEnd() ?? "";
 
     try {
       console.log("Attempting to match search string:", searchPart);
