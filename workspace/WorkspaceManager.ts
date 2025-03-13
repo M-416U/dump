@@ -49,26 +49,14 @@ export class WorkspaceManager {
       fs.mkdirSync(workspacePath, { recursive: true });
     }
 
-    // Create results directory inside workspace
-    const resultsPath = path.join(workspacePath, "results");
-    if (!fs.existsSync(resultsPath)) {
-      fs.mkdirSync(resultsPath);
-    }
-
-    // Create logs directory inside workspace
-    const logsPath = path.join(workspacePath, "logs");
-    if (!fs.existsSync(logsPath)) {
-      fs.mkdirSync(logsPath);
-    }
-
     // Insert workspace into database
     const stmt = db.prepare(
       "INSERT INTO workspaces (name, path) VALUES (?, ?)"
     );
-    const result = stmt.run(name, workspacePath);
+    const result = stmt.run(name, workspacePath).then((r) => r.lastID);
 
     const workspace: Workspace = {
-      id: result.lastInsertRowid as number,
+      id: Number(result),
       name,
       path: workspacePath,
       createdAt: new Date(),
@@ -81,10 +69,10 @@ export class WorkspaceManager {
   /**
    * Get all workspaces
    */
-  getAllWorkspaces(): Workspace[] {
-    const rows = db
+  async getAllWorkspaces(): Promise<Workspace[]> {
+    const rows = (await db
       .prepare("SELECT * FROM workspaces ORDER BY created_at DESC")
-      .all() as WorkspaceRow[];
+      .all()) as unknown as WorkspaceRow[];
     return rows.map((row: WorkspaceRow) => ({
       id: row.id,
       name: row.name,
@@ -96,10 +84,10 @@ export class WorkspaceManager {
   /**
    * Open an existing workspace
    */
-  openWorkspace(id: number): Workspace | null {
-    const row = db.prepare("SELECT * FROM workspaces WHERE id = ?").get(id) as
-      | WorkspaceRow
-      | undefined;
+  async openWorkspace(id: number): Promise<Workspace | null> {
+    const row = (await db
+      .prepare("SELECT * FROM workspaces WHERE id = ?")
+      .get(id)) as WorkspaceRow | undefined;
 
     if (!row) return null;
 
@@ -138,16 +126,16 @@ export class WorkspaceManager {
   /**
    * Get chat history for current workspace
    */
-  getChatHistory(): ChatMessage[] {
+  async getChatHistory(): Promise<ChatMessage[]> {
     if (!this.currentWorkspace) {
       return [];
     }
 
-    const rows = db
+    const rows = (await db
       .prepare(
         "SELECT * FROM chat_history WHERE workspace_id = ? ORDER BY timestamp ASC"
       )
-      .all(this.currentWorkspace.id) as ChatHistoryRow[];
+      .all(this.currentWorkspace.id)) as unknown as ChatHistoryRow[];
 
     return rows.map((row: ChatHistoryRow) => ({
       id: row.id,
