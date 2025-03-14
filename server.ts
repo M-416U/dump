@@ -2,8 +2,7 @@ import express from "express";
 import cors from "cors";
 import { WorkspaceManager } from "./workspace/WorkspaceManager";
 import { AIService } from "./services/AIService";
-import { ToolService } from "./services/ToolService";
-import path from "path";
+import { ToolService } from "./services/tools/ToolService";
 import { toolHandlers } from "./services/tools";
 
 // Initialize the app

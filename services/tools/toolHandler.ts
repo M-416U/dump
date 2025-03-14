@@ -1,7 +1,7 @@
-import { processDiffBlocks, processReplaceInFile } from "./applyDiffMode";
-import { MCPClientManager } from "./MCP/MCPManager";
-import { ToolFunctions } from "./services/ToolFunctions";
-import type { ToolParams } from "./services/ToolService";
+import { processDiffBlocks, processReplaceInFile } from "../../applyDiffMode";
+import { MCPClientManager } from "../../MCP/MCPManager";
+import { ToolFunctions } from "./ToolFunctions";
+import type { ToolParams } from "./ToolService";
 import fs from "fs";
 import path from "path";
 

@@ -1,5 +1,5 @@
-import { ToolHandlerFunctions } from "../../toolHandler";
-import type { ToolHandler } from "../ToolService";
+import { ToolHandlerFunctions } from "./toolHandler";
+import type { ToolHandler } from "./ToolService";
 
 export const toolHandlers: Record<string, ToolHandler> = {
   READFILE: ToolHandlerFunctions.readFileHandler,

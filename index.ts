@@ -2,7 +2,7 @@ import fs from "fs";
 import path from "path";
 import { aiInstructionPrompt } from "./prompts/frontend";
 import { askUser, logToMarkdown } from "./helpers";
-import { toolHandlers } from "./toolHandler";
+import { toolHandlers } from "./services/tools/toolHandler";
 import { MCPClientManager } from "./MCP/MCPManager";
 import {
   AIProviderFactory,
