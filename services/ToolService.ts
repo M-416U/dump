@@ -1,7 +1,7 @@
 import { toolHandlers } from "../toolHandler";
 import fs from "fs";
 import path from "path";
-import { logToMarkdown } from "../helpers";
+import { Logger } from "../helpers/logger";
 
 export type ToolParams = {
   content: string;
@@ -18,14 +18,11 @@ export class ToolService {
     "logs",
   ]);
   private IGNORE_FILES = new Set([".DS_Store", "thumbs.db"]);
-  
-  async executeTool(
-    response: string,
-    workspaceId: number,
-    workspacePath: string
-  ): Promise<string> {
+
+  async executeTool(response: string): Promise<string> {
+    const { path: workspacePath, id: workspaceId } = workspace;
     const sessionId = `workspace-${workspaceId}`;
-    logToMarkdown(sessionId, response, "tool");
+    Logger.logToMarkdown(sessionId, response, "tool");
 
     // Build regex dynamically from existing handlers
     const availableTools = Object.keys(toolHandlers).join("|");
@@ -33,17 +30,17 @@ export class ToolService {
 
     const toolMatch = response.match(toolRegex);
     const files = this.listWorkspaceFiles(workspacePath);
-    
+
     if (!toolMatch) {
-      logToMarkdown(sessionId, "no tool", "tool");
+      Logger.logToMarkdown(sessionId, "no tool", "tool");
       return `Current Structure:\n${files}\n`;
     }
 
     const [, tool, content] = toolMatch;
     let result = `Tool "${tool}" not recognized`;
-    
+
     if (!tool || !content) return `Current Structure:\n${files}\n`;
-    
+
     if (toolHandlers[tool]) {
       try {
         // Pass standardized parameters object with content and necessary directories
@@ -58,7 +55,7 @@ export class ToolService {
       }
     }
 
-    logToMarkdown(sessionId, result, "tool");
+    Logger.logToMarkdown(sessionId, result, "tool");
     return `${files}\n\nResult:\n${result}`;
   }
 
