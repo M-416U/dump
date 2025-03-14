@@ -19,23 +19,52 @@ export class DiffProcessor {
   }
 
   private splitDiffBlocks(diffContent: string): string[] {
-    return diffContent
-      .split(/(?=^<.*?>)/m)
-      .map((block) => block.trim())
-      .filter(Boolean);
+    const blocks: string[] = [];
+
+    // First check for CODE blocks
+    const codeRegex = /<CODE>\s*([\s\S]*?)\s*<\/CODE>/g;
+    let codeMatch: RegExpExecArray | null;
+    while ((codeMatch = codeRegex.exec(diffContent)) !== null) {
+      if (codeMatch[1]) {
+        blocks.push(codeMatch[1].trim());
+      }
+    }
+
+    // Then check for DIFFBLOCK blocks
+    if (blocks.length === 0) {
+      const diffBlockRegex = /<DIFFBLOCK>\s*([\s\S]*?)\s*<\/DIFFBLOCK>/g;
+      let diffMatch: RegExpExecArray | null;
+      while ((diffMatch = diffBlockRegex.exec(diffContent)) !== null) {
+        if (diffMatch[1]) {
+          blocks.push(diffMatch[1].trim());
+        }
+      }
+    }
+
+    // Then check for REPLACEINFILE blocks
+    if (blocks.length === 0) {
+      const replaceRegex = /<REPLACEINFILE>\s*([\s\S]*?)\s*<\/REPLACEINFILE>/g;
+      let replaceMatch: RegExpExecArray | null;
+      while ((replaceMatch = replaceRegex.exec(diffContent)) !== null) {
+        if (replaceMatch[1]) {
+          blocks.push(replaceMatch[1].trim());
+        }
+      }
+    }
+    return blocks.length === 0 ? [diffContent] : blocks;
   }
 
   private processBlock(diffBlock: string) {
     let blockInstance: DiffBlock | null = null;
 
-    if (diffBlock.startsWith("<NEWFILE>")) {
-      blockInstance = new NewFileDiffBlock(diffBlock);
-    } else if (diffBlock.startsWith("<DELETEFILE>")) {
-      blockInstance = new DeletedFileDiffBlock(diffBlock);
-    } else if (diffBlock.startsWith("<MODIFYFILE>")) {
-      blockInstance = new ModifiedFileDiffBlock(diffBlock);
-    } else if (diffBlock.startsWith("<REPLACEINFILE>")) {
+    if (diffBlock.includes("<REPLACEINFILE>")) {
       blockInstance = new ReplaceInFileDiffBlock(diffBlock);
+    } else if (diffBlock.includes("new file mode")) {
+      blockInstance = new NewFileDiffBlock(diffBlock);
+    } else if (diffBlock.includes("deleted file mode")) {
+      blockInstance = new DeletedFileDiffBlock(diffBlock);
+    } else {
+      blockInstance = new ModifiedFileDiffBlock(diffBlock);
     }
 
     if (blockInstance) {

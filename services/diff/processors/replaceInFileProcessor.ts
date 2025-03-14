@@ -23,52 +23,42 @@ export class ReplaceInFileDiffBlock extends DiffBlock {
       return new Error(`Error applying replace-in-file: ${error.message}`);
     }
   }
-  process(): void {
+  process(): Error | null {
     try {
-      // Extract <path> and <diff>
+      // 1. Extract & Validate Input
       const pathMatch = this.diffContent.match(/<path>(.*?)<\/path>/);
       const diffMatch = this.diffContent.match(/<diff>([\s\S]*?)<\/diff>/);
-
       if (!pathMatch || !diffMatch) {
         throw new Error("Invalid <REPLACEINFILE> format");
       }
-
       const filePath = pathMatch[1]?.trim() ?? "";
       const fullPath = path.join(this.baseDir, filePath);
       let diffContent = diffMatch[1]?.trim() ?? "";
 
-      console.log(`Processing replace in file: ${filePath}`);
-
-      if (!FileHandler.fileExists(fullPath)) {
+      // 2. Determine File Existence
+      if (!fsExtra.existsSync(fullPath)) {
         throw new Error(`File does not exist: ${filePath}`);
       }
-
-      let fileContent = FileHandler.readFile(fullPath);
+      let fileContent = fsExtra.readFileSync(fullPath, "utf8");
 
       try {
         fileContent = this.constructNewFileContent(diffContent, fullPath);
       } catch (error: any) {
         console.error(`❌ Diff processing failed: ${error.message}`);
 
-        // Log error to file
-        const logDir = path.join(this.baseDir, "../logs");
-        fsExtra.ensureDirSync(logDir);
-        const logFile = path.join(logDir, `replace-error.log`);
-
         const logContent = `
-ERROR: ${error.message}
-FILE PATH: ${filePath}
-TIMESTAMP: ${new Date().toISOString()}
+ ERROR: ${error.message}
+ FILE PATH: ${filePath}
+ TIMESTAMP: ${new Date().toISOString()}
+ 
+ === FILE CONTENT ===
+ ${fileContent}
+ 
+ === DIFF CONTENT ===
+ ${diffContent}
+ `;
 
-=== FILE CONTENT ===
-${fileContent}
-
-=== DIFF CONTENT ===
-${diffContent}
-`;
-
-        fsExtra.writeFileSync(logFile, logContent);
-        console.error(`📝 Error details logged to: ${logFile}`);
+        Logger.logToMarkdown("ReplaceInFileDiffBlock", `${logContent}`, "tool");
 
         throw new Error(
           `SEARCH block mismatch in ${filePath}: ${error.message}`
@@ -76,11 +66,13 @@ ${diffContent}
       }
 
       fileContent = fileContent.trimEnd();
-      FileHandler.writeFile(fullPath, fileContent);
+      fsExtra.writeFileSync(fullPath, fileContent, "utf8");
+
       console.log(`✅ Applied <REPLACEINFILE> modifications to ${filePath}`);
+      return null;
     } catch (error: any) {
       console.error(`❌ Error in processReplaceInFile: ${error.message}`);
-      throw error;
+      return error;
     }
   }
 
@@ -95,11 +87,10 @@ ${diffContent}
       throw new Error("No valid SEARCH/REPLACE blocks found");
     }
 
-    let fileContent = FileHandler.readFile(filePath);
+    let fileContent = fsExtra.readFileSync(filePath, "utf8");
 
     searchReplaceBlocks.forEach((block: string, index) => {
       console.log(`Processing block #${index + 1}:`, block);
-
       const match = block.match(
         /<<<<<<< SEARCH\s*([\s\S]*?)\s*=======\s*([\s\S]*?)\s*>>>>>>> REPLACE/
       );
@@ -134,12 +125,12 @@ ${diffContent}
     searchString: string,
     replaceString: string
   ): string {
-    const normalizedSearch = this.normalizeSearch(searchString);
+    const normalizedSearch = this.normalizeSearch(searchString); // Normalize the search string
     const fileLines = fileContent.split("\n");
     let matchStart = -1;
     let matchEnd = -1;
 
-    // Find matching block using sliding window
+    // Find matching block using sliding window approach
     for (let i = 0; i < fileLines.length; i++) {
       const window = fileLines
         .slice(i, i + searchString.split("\n").length)
@@ -156,9 +147,10 @@ ${diffContent}
       throw new Error(`Search pattern not found: ${searchString}`);
     }
 
-    // Fix formatting for replacement block
-    const replacementLines = this.fixDiff(replaceString.split("\n"));
+    // Preserve the exact formatting for the replace block
+    let replacementLines = this.fixDiff(replaceString.split("\n"));
 
+    // Rebuild content with replacement (preserving the replace block formatting)
     return [
       ...fileLines.slice(0, matchStart),
       ...replacementLines,
@@ -171,9 +163,9 @@ ${diffContent}
    */
   private normalizeSearch(str: string): string {
     return str
-      .replace(/\s+/g, " ") // Collapse multiple spaces into one
-      .replace(/\n+/g, " ") // Collapse multiple newlines into one
-      .trim();
+      .replace(/\s+/g, " ") // Collapse all whitespaces (spaces, tabs) into a single space
+      .replace(/\n+/g, " ") // Collapse multiple newlines into a single space
+      .trim(); // Remove leading and trailing spaces
   }
 
   /**
@@ -182,14 +174,16 @@ ${diffContent}
   private fixDiff(arr: string[]): string[] {
     return arr
       .filter((line) => {
+        // Remove lines that start with -
         if (line.startsWith("-")) {
-          return false; // Remove deleted lines
+          return false;
         }
         return true;
       })
       .map((line) => {
+        // For lines starting with +, remove the + and add 2 spaces
         if (line.startsWith("+ ")) {
-          return "  " + line.substring(2); // Indent replacement lines
+          return "  " + line.substring(2);
         }
         return line;
       });

@@ -53,7 +53,6 @@ export class ToolHandlerFunctions {
   }
 
   static async replaceInFileHandler({ content }: ToolParams): Promise<string> {
-    Logger.logToMarkdown("REPLACEINFILE", "Replace in file traggerd", "tool");
     if (!content) return "No content provided";
     const diffProcessor = new ReplaceInFileDiffBlock(content);
     const diffResult = diffProcessor.apply();
