@@ -1,9 +1,9 @@
 import { Router } from "express";
 import { workspaceManager } from "../server";
 
-const workspaceRouter = Router();
+export const workspaceRouter = Router();
 
-workspaceRouter.post("/api/workspaces", async (req, res) => {
+workspaceRouter.post("/", async (req, res) => {
   try {
     const { name, basePath } = req.body;
     if (!basePath) {
@@ -20,7 +20,7 @@ workspaceRouter.post("/api/workspaces", async (req, res) => {
   }
 });
 
-workspaceRouter.get("/api/workspaces", async (req, res) => {
+workspaceRouter.get("/", async (req, res) => {
   try {
     const workspaces = await workspaceManager.getAllWorkspaces();
     res.json(workspaces);
@@ -29,7 +29,7 @@ workspaceRouter.get("/api/workspaces", async (req, res) => {
   }
 });
 
-workspaceRouter.post("/api/workspaces/:id/open", async (req, res) => {
+workspaceRouter.post("/:id/open", async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     const workspace = await workspaceManager.openWorkspace(id);

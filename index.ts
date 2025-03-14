@@ -1,13 +1,14 @@
 import fs from "fs";
 import path from "path";
 import { aiInstructionPrompt } from "./prompts/frontend";
-import { askUser, logToMarkdown } from "./helpers";
-import { toolHandlers } from "./services/tools/toolHandler";
 import { MCPClientManager } from "./MCP/MCPManager";
 import {
   AIProviderFactory,
   type AIProvider,
 } from "./providers/AIProviderFactory";
+import { toolHandlers } from "./services/tools";
+import { Logger } from "./helpers/logger";
+import { ToolFunctions } from "./services/tools/ToolFunctions";
 
 type ToolParams = {
   content: string;
@@ -80,7 +81,7 @@ async function executeTool(
   response: string,
   sessionId: string
 ): Promise<string> {
-  logToMarkdown(sessionId, response, "tool");
+  Logger.logToMarkdown(sessionId, response, "tool");
 
   // Build regex dynamically from existing handlers
   const availableTools = Object.keys(toolHandlers).join("|");
@@ -89,7 +90,7 @@ async function executeTool(
   const toolMatch = response.match(toolRegex);
   const files = listResultsFiles();
   if (!toolMatch) {
-    logToMarkdown(sessionId, "no tool", "tool");
+    Logger.logToMarkdown(sessionId, "no tool", "tool");
     return `Current Structure:\n${files}\n`;
   }
 
@@ -110,7 +111,7 @@ async function executeTool(
     }
   }
 
-  logToMarkdown(sessionId, result, "tool");
+  Logger.logToMarkdown(sessionId, result, "tool");
   return `${files}\n\nResult:\n${result}`;
 }
 
@@ -168,8 +169,8 @@ async function main(): Promise<void> {
     `Using AI Provider: ${AI_CONFIG.provider}, Model: ${AI_CONFIG.model}`
   );
 
-  const idea = await askUser("Enter your project idea");
-  logToMarkdown(sessionId, idea, "user");
+  const idea = await ToolFunctions.askUser("Enter your project idea");
+  Logger.logToMarkdown(sessionId, idea, "user");
   console.log("Processing your request...");
 
   // Send initial prompt with explicit instruction to use tools
@@ -189,7 +190,7 @@ async function main(): Promise<void> {
   console.log("--------------------");
   console.log(response);
   console.log("--------------------\n");
-  logToMarkdown(sessionId, response, "planner");
+  Logger.logToMarkdown(sessionId, response, "planner");
 
   // Extract and execute tools repeatedly
   let iterationCount = 0;
@@ -227,7 +228,7 @@ async function main(): Promise<void> {
     console.log("--------------------");
     console.log(response);
     console.log("--------------------\n");
-    logToMarkdown(sessionId, response, "planner");
+    Logger.logToMarkdown(sessionId, response, "planner");
   }
 
   if (iterationCount >= MAX_ITERATIONS) {

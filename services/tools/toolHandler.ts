@@ -1,11 +1,13 @@
-import { processDiffBlocks, processReplaceInFile } from "../../applyDiffMode";
 import { MCPClientManager } from "../../MCP/MCPManager";
+import { DiffProcessor } from "../diff/diffProcessor";
+import { ReplaceInFileDiffBlock } from "../diff/processors/replaceInFileProcessor";
 import { ToolFunctions } from "./ToolFunctions";
 import type { ToolParams } from "./ToolService";
 import fs from "fs";
 import path from "path";
 
 export class ToolHandlerFunctions {
+  constructor() {}
   static async readFileHandler({
     content,
     resultsDir,
@@ -34,10 +36,7 @@ export class ToolHandlerFunctions {
     // return await ToolFunctions.executeCommand(command);
   }
 
-  static async codeHandler({
-    content,
-    resultsDir,
-  }: ToolParams): Promise<string> {
+  static async codeHandler({ content }: ToolParams): Promise<string> {
     if (!content) return "No code content provided";
     console.log("Processing CODE block with content length:", content.length);
     console.log("First 100 chars:", content.substring(0, 100));
@@ -50,17 +49,15 @@ export class ToolHandlerFunctions {
     ) {
       content = `<DIFFBLOCK>\n${content}\n</DIFFBLOCK>`;
     }
-
-    const diffResult = processDiffBlocks(content, resultsDir);
+    const diffProcessor = new DiffProcessor();
+    const diffResult = diffProcessor.process(content);
     return diffResult ? diffResult.message : "Code processed successfully";
   }
 
-  static async replaceInFileHandler({
-    content,
-    resultsDir,
-  }: ToolParams): Promise<string> {
+  static async replaceInFileHandler({ content }: ToolParams): Promise<string> {
     if (!content) return "No content provided";
-    const diffResult = processReplaceInFile(content, resultsDir);
+    const diffProcessor = new ReplaceInFileDiffBlock(content);
+    const diffResult = diffProcessor.apply();
     return diffResult ? diffResult.message : "File modified successfully";
   }
 

@@ -4,6 +4,7 @@ import { WorkspaceManager } from "./workspace/WorkspaceManager";
 import { AIService } from "./services/AIService";
 import { ToolService } from "./services/tools/ToolService";
 import { toolHandlers } from "./services/tools";
+import { workspaceRouter } from "./routes/workspace.route";
 
 // Initialize the app
 const app = express();
@@ -23,17 +24,7 @@ async function initializeServices() {
   try {
     await aiService.initialize();
     console.log("AI Service initialized successfully");
-
-    // Make services available to routes
-    app.use((req, res, next) => {
-      req.services = {
-        workspaceManager,
-        aiService,
-        toolService,
-      };
-      next();
-    });
-    // Start the server
+    app.use("/api/workspaces", workspaceRouter);
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
       console.log(`Open http://localhost:${PORT} in your browser`);
