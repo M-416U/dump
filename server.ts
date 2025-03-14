@@ -4,6 +4,7 @@ import { WorkspaceManager } from "./workspace/WorkspaceManager";
 import { AIService } from "./services/AIService";
 import { ToolService } from "./services/ToolService";
 import path from "path";
+import { toolHandlers } from "./services/tools";
 
 // Initialize the app
 const app = express();
@@ -17,7 +18,7 @@ app.use(express.json());
 const workspaceManager = new WorkspaceManager();
 const aiService = new AIService();
 const toolService = new ToolService();
-
+toolService.registerTools(toolHandlers);
 // Initialize services before starting server
 async function initializeServices() {
   try {

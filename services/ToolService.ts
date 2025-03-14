@@ -1,4 +1,3 @@
-import { toolHandlers } from "../toolHandler";
 import fs from "fs";
 import path from "path";
 import { Logger } from "../helpers/logger";
@@ -9,6 +8,8 @@ export type ToolParams = {
   sessionId: string;
 };
 
+export type ToolHandler = (params: ToolParams) => Promise<string>;
+
 export class ToolService {
   private IGNORE_FOLDERS = new Set([
     "node_modules",
@@ -18,6 +19,17 @@ export class ToolService {
     "logs",
   ]);
   private IGNORE_FILES = new Set([".DS_Store", "thumbs.db"]);
+  private toolHandlers: Record<string, ToolHandler> = {};
+
+  registerTool(name: string, handler: ToolHandler): void {
+    this.toolHandlers[name] = handler;
+  }
+
+  registerTools(handlers: Record<string, ToolHandler>): void {
+    Object.entries(handlers).forEach(([name, handler]) => {
+      this.registerTool(name, handler);
+    });
+  }
 
   async executeTool(response: string): Promise<string> {
     const { path: workspacePath, id: workspaceId } = workspace;
@@ -25,7 +37,7 @@ export class ToolService {
     Logger.logToMarkdown(sessionId, response, "tool");
 
     // Build regex dynamically from existing handlers
-    const availableTools = Object.keys(toolHandlers).join("|");
+    const availableTools = Object.keys(this.toolHandlers).join("|");
     const toolRegex = new RegExp(`<(${availableTools})>([\\s\\S]*?)<\\/\\1>`);
 
     const toolMatch = response.match(toolRegex);
@@ -41,7 +53,7 @@ export class ToolService {
 
     if (!tool || !content) return `Current Structure:\n${files}\n`;
 
-    if (toolHandlers[tool]) {
+    if (this.toolHandlers[tool]) {
       try {
         // Pass standardized parameters object with content and necessary directories
         const params: ToolParams = {
@@ -49,7 +61,7 @@ export class ToolService {
           resultsDir: workspacePath,
           sessionId: sessionId,
         };
-        result = await toolHandlers[tool](params);
+        result = await this.toolHandlers[tool](params);
       } catch (error: any) {
         result = `Error executing ${tool}: ${error.message}`;
       }
