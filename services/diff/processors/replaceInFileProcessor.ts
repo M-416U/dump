@@ -2,14 +2,24 @@ import * as path from "path";
 import * as fsExtra from "fs-extra";
 import { DiffBlock } from "../diffBlock";
 import { FileHandler } from "../../../shared/fileHandler";
+import { Logger } from "../../../helpers/logger";
 
 export class ReplaceInFileDiffBlock extends DiffBlock {
   apply(): null | Error {
     try {
+      Logger.logToMarkdown(
+        "ReplaceInFileDiffBlock",
+        `Applying replace-in-file ${this.baseDir}`,
+        "tool"
+      );
       this.process();
       return null;
     } catch (error: any) {
-      console.error(`❌ Error applying replace-in-file: ${error.message}`);
+      Logger.logToMarkdown(
+        "ReplaceInFileDiffBlock",
+        `❌ Error applying replace-in-file: ${error.message}`,
+        "tool"
+      );
       return new Error(`Error applying replace-in-file: ${error.message}`);
     }
   }

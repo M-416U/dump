@@ -9,6 +9,8 @@ import {
 import { toolHandlers } from "./services/tools";
 import { Logger } from "./helpers/logger";
 import { ToolFunctions } from "./services/tools/ToolFunctions";
+import { WorkspaceManager } from "./workspace/WorkspaceManager";
+import { ToolService } from "./services/tools/ToolService";
 
 type ToolParams = {
   content: string;
@@ -23,18 +25,18 @@ const AI_CONFIG = {
   apiKey: "AIzaSyDs0ghsn-0UviJ4K0zUFxcWi17X_rmm_AQ",
 };
 
-// Directory setup
-const __dirname = path.dirname(__filename);
 const resultsDir = path.join(__dirname, "results");
-
-if (!fs.existsSync(resultsDir)) {
-  fs.mkdirSync(resultsDir, { recursive: true });
-}
 
 // Initialize MCP tools
 const manager = new MCPClientManager();
 await manager.initialize();
 const tools = await manager.getAllTools();
+const workspaceManager = new WorkspaceManager();
+const localWorkspace = await workspaceManager.createWorkspace(
+  "CLI",
+  resultsDir
+);
+global.workspace = localWorkspace;
 
 // Initialize AI provider
 const aiProviderFactory = new AIProviderFactory();
@@ -77,109 +79,29 @@ async function retryRequest<T>(
   throw new Error("Max retries reached. API request failed.");
 }
 
-async function executeTool(
-  response: string,
-  sessionId: string
-): Promise<string> {
-  Logger.logToMarkdown(sessionId, response, "tool");
-
-  // Build regex dynamically from existing handlers
-  const availableTools = Object.keys(toolHandlers).join("|");
-  const toolRegex = new RegExp(`<(${availableTools})>([\\s\\S]*?)<\\/\\1>`);
-
-  const toolMatch = response.match(toolRegex);
-  const files = listResultsFiles();
-  if (!toolMatch) {
-    Logger.logToMarkdown(sessionId, "no tool", "tool");
-    return `Current Structure:\n${files}\n`;
-  }
-
-  const [, tool, content] = toolMatch;
-  let result = `Tool "${tool}" not recognized`;
-  if (!tool || !content) return `Current Structure:\n${files}\n`;
-  if (toolHandlers[tool]) {
-    try {
-      // Pass standardized parameters object with content and necessary directories
-      const params: ToolParams = {
-        content: content!,
-        resultsDir: resultsDir,
-        sessionId: sessionId,
-      };
-      result = await toolHandlers[tool](params);
-    } catch (error: any) {
-      result = `Error executing ${tool}: ${error.message}`;
-    }
-  }
-
-  Logger.logToMarkdown(sessionId, result, "tool");
-  return `${files}\n\nResult:\n${result}`;
-}
-
-const IGNORE_FOLDERS = new Set([
-  "node_modules",
-  ".git",
-  "dist",
-  "build",
-  "logs",
-]);
-const IGNORE_FILES = new Set([".DS_Store", "thumbs.db"]);
-
-function listResultsFiles(dir: string = resultsDir): string {
-  try {
-    let output = "";
-
-    function readDirRecursive(directory: string, indent: string = "") {
-      const items = fs.readdirSync(directory);
-      for (const item of items) {
-        const fullPath = path.join(directory, item);
-        const stats = fs.statSync(fullPath);
-
-        if (stats.isDirectory()) {
-          if (!IGNORE_FOLDERS.has(item)) {
-            output += `${fullPath}\n`;
-            readDirRecursive(fullPath, indent + "  ");
-          }
-        } else if (!IGNORE_FILES.has(item)) {
-          output += `${fullPath}\n`;
-        }
-      }
-    }
-
-    // output += `${path.basename(dir)}\n`;
-    readDirRecursive(dir, "  ");
-
-    console.log("Results Directory Structure:\n" + output);
-    return `\nCurrent Structure:\n ${
-      output.trim() || "No files generated yet"
-    }`;
-  } catch (error) {
-    console.error("Error listing files:", error);
-    return "Error listing files";
-  }
-}
-
 async function main(): Promise<void> {
   // Generate unique session ID for logging
   const sessionId = `session-${Date.now()}`;
   console.log("Welcome to the AI CLI for App Generation");
   console.log(
-    `Session ID: ${sessionId} (logs will be saved to logs/${sessionId}-log.md)`
-  );
-  console.log(
     `Using AI Provider: ${AI_CONFIG.provider}, Model: ${AI_CONFIG.model}`
   );
-
+  const toolService = new ToolService();
+  toolService.registerTools(toolHandlers);
   const idea = await ToolFunctions.askUser("Enter your project idea");
   Logger.logToMarkdown(sessionId, idea, "user");
   console.log("Processing your request...");
 
   // Send initial prompt with explicit instruction to use tools
   const stepResponse = await retryRequest(() =>
-    aiProvider.sendMessage(frontPlannerChat, `${idea}\n\n${listResultsFiles()}`)
+    aiProvider.sendMessage(
+      frontPlannerChat,
+      `${idea}\n\n${toolService.listWorkspaceFiles()}`
+    )
   );
 
   // Process the response and continue processing tools until complete
-  let response = typeof stepResponse === "string" ? stepResponse : stepResponse;
+  let response = stepResponse;
   if (typeof response !== "string") {
     console.error("Unexpected response format from AI provider");
     response = "Error: Unexpected response format";
@@ -200,24 +122,17 @@ async function main(): Promise<void> {
     iterationCount++;
     console.log(`\n⚙️ Processing tool iteration #${iterationCount}...`);
 
-    let toolOutput = await executeTool(response, sessionId);
-    console.log("\n🔧 Tool Output:");
-    console.log("--------------------");
-    console.log(toolOutput);
-    console.log("--------------------\n");
+    let toolOutput = await toolService.executeTool(response);
 
     // Send the tool output back to the planner for next steps
     const nextStepResponse = await retryRequest(() =>
       aiProvider.sendMessage(
         frontPlannerChat,
-        `Tool output: ${toolOutput}\n\nCurrent directory structure:\n${listResultsFiles()}\n\nWhat is the next step? Remember to use the proper tool format.`
+        `Tool output: ${toolOutput}\n\nCurrent directory structure:\n${toolService.listWorkspaceFiles()}\n\nWhat is the next step? Remember to use the proper tool format.`
       )
     );
 
-    response =
-      typeof nextStepResponse === "string"
-        ? nextStepResponse
-        : nextStepResponse;
+    response = nextStepResponse;
     if (typeof response !== "string") {
       console.error("Unexpected response format from AI provider");
       response = "Error: Unexpected response format";
@@ -238,7 +153,7 @@ async function main(): Promise<void> {
   }
 
   console.log("\n🎉 App generation complete!");
-  const finalFiles = listResultsFiles();
+  const finalFiles = toolService.listWorkspaceFiles();
   console.log("\n📁 Generated Files:");
   console.log(finalFiles);
 

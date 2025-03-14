@@ -10,6 +10,8 @@
     "build": "tsc"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.0",
+    "@modelcontextprotocol/sdk": "^1.7.0",
     "@types/diff": "^7.0.1",
     "cors": "^2.8.5",
     "diff": "^7.0.0",

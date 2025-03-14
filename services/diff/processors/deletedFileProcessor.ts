@@ -1,10 +1,26 @@
 import path from "path";
 import { FileHandler } from "../../../shared/fileHandler";
 import { DiffBlock } from "../diffBlock";
+import { Logger } from "../../../helpers/logger";
 
 export class DeletedFileDiffBlock extends DiffBlock {
-  apply(): void {
-    this.process();
+  apply(): null | Error {
+    try {
+      Logger.logToMarkdown(
+        "DeletedFileDiffBlock",
+        `Applying delete-file ${this.baseDir}`,
+        "tool"
+      );
+      this.process();
+      return null;
+    } catch (error: any) {
+      Logger.logToMarkdown(
+        "DeletedFileDiffBlock",
+        `❌ Error applying delete-file: ${error.message}`,
+        "tool"
+      );
+      return new Error(`Error applying delete-file: ${error.message}`);
+    }
   }
   process(): Error | null {
     try {

@@ -29,13 +29,10 @@ export class ToolFunctions {
     return answers.response;
   }
 
-  static async executeCommand(
-    command: string,
-    resultsDir?: string
-  ): Promise<string> {
+  static async executeCommand(command: string): Promise<string> {
     return new Promise((resolve, reject) => {
       const child = spawn(command, {
-        cwd: resultsDir,
+        cwd: workspace.path,
         stdio: ["inherit", "pipe", "pipe"],
         shell: true,
       });

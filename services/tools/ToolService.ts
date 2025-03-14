@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import { Logger } from "../helpers/logger";
+import { Logger } from "../../helpers/logger";
 
 export type ToolParams = {
   content: string;
@@ -17,6 +17,7 @@ export class ToolService {
     "dist",
     "build",
     "logs",
+    ".dump_ws",
   ]);
   private IGNORE_FILES = new Set([".DS_Store", "thumbs.db"]);
   private toolHandlers: Record<string, ToolHandler> = {};
@@ -41,7 +42,7 @@ export class ToolService {
     const toolRegex = new RegExp(`<(${availableTools})>([\\s\\S]*?)<\\/\\1>`);
 
     const toolMatch = response.match(toolRegex);
-    const files = this.listWorkspaceFiles(workspacePath);
+    const files = this.listWorkspaceFiles();
 
     if (!toolMatch) {
       Logger.logToMarkdown(sessionId, "no tool", "tool");
@@ -71,9 +72,10 @@ export class ToolService {
     return `${files}\n\nResult:\n${result}`;
   }
 
-  listWorkspaceFiles(workspacePath: string): string {
+  listWorkspaceFiles(): string {
     try {
       let output = "";
+      const workspacePath = workspace.path;
 
       const readDirRecursive = (directory: string, indent: string = "") => {
         const items = fs.readdirSync(directory);

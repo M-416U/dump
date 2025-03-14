@@ -3,7 +3,7 @@ import fs from "fs";
 type LogType = "user" | "planner" | "tool" | "files" | "coder";
 export class Logger {
   private static instance: Logger;
-  private logsDir = path.join(__dirname, "logs");
+  private logsDir = path.join(workspace.path, ".dump_ws", "logs");
 
   constructor(logDir?: string) {
     if (logDir) {

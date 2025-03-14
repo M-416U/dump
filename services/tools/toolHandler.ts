@@ -1,3 +1,4 @@
+import { Logger } from "../../helpers/logger";
 import { MCPClientManager } from "../../MCP/MCPManager";
 import { DiffProcessor } from "../diff/diffProcessor";
 import { ReplaceInFileDiffBlock } from "../diff/processors/replaceInFileProcessor";
@@ -8,12 +9,9 @@ import path from "path";
 
 export class ToolHandlerFunctions {
   constructor() {}
-  static async readFileHandler({
-    content,
-    resultsDir,
-  }: ToolParams): Promise<string> {
+  static async readFileHandler({ content }: ToolParams): Promise<string> {
     if (!content) return "No file path provided";
-    const filePath = path.join(resultsDir, content.trim());
+    const filePath = path.join(workspace.path, content.trim());
     if (fs.existsSync(filePath)) {
       return fs.readFileSync(filePath, "utf8");
     }
@@ -55,30 +53,28 @@ export class ToolHandlerFunctions {
   }
 
   static async replaceInFileHandler({ content }: ToolParams): Promise<string> {
+    Logger.logToMarkdown("REPLACEINFILE", "Replace in file traggerd", "tool");
     if (!content) return "No content provided";
     const diffProcessor = new ReplaceInFileDiffBlock(content);
     const diffResult = diffProcessor.apply();
     return diffResult ? diffResult.message : "File modified successfully";
   }
 
-  static async listFilesHandler({ resultsDir }: ToolParams): Promise<string> {
+  static async listFilesHandler({}: ToolParams): Promise<string> {
     try {
-      const items = fs.readdirSync(resultsDir);
+      const items = fs.readdirSync(workspace.path);
       return items.join("\n");
     } catch (error: any) {
       return `Error listing files: ${error.message}`;
     }
   }
 
-  static async writeToFileHandler({
-    content,
-    resultsDir,
-  }: ToolParams): Promise<string> {
+  static async writeToFileHandler({ content }: ToolParams): Promise<string> {
     if (!content) return "No content provided";
     const pathMatch = content.match(/<path>(.*?)<\/path>/s);
     const contentMatch = content.match(/<content>(.*?)<\/content>/s);
     if (pathMatch && contentMatch) {
-      const filePath = path.join(resultsDir, pathMatch[1]!.trim());
+      const filePath = path.join(workspace.path, pathMatch[1]!.trim());
       const fileContent = contentMatch[1]!.trim();
       return await ToolFunctions.writeToFile(filePath, fileContent);
     }

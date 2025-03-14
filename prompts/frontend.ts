@@ -98,6 +98,14 @@ const toolDescriptions = `
 \`\`\`xml
 <COMMAND>ls</COMMAND>
 \`\`\`
+### \`<ASKUSER>\`  
+- **Purpose**: Get Input from user.  
+- **Input**: question.  
+- **Output**: user input.  
+**Example:**  
+\`\`\`xml
+<ASKUSER>what framework do you want to use?</ASKUSER>
+\`\`\`
 
 ### \`<CODE>\`  
 - **Purpose**: Generate new files or add new code.  

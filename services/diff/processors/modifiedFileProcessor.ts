@@ -2,9 +2,29 @@ import { applyPatch, parsePatch, type ParsedDiff } from "diff";
 import path from "path";
 import { FileHandler } from "../../../shared/fileHandler";
 import { DiffBlock } from "../diffBlock";
+import { Logger } from "../../../helpers/logger";
 
 export class ModifiedFileDiffBlock extends DiffBlock {
-  apply(): void {
+  apply(): null | Error {
+    try {
+      Logger.logToMarkdown(
+        "ModifiedFileDiffBlock",
+        `Applying modified-in-file ${this.baseDir}`,
+        "tool"
+      );
+      this.process();
+      return null;
+    } catch (error: any) {
+      Logger.logToMarkdown(
+        "ModifiedFileDiffBlock",
+        `❌ Error applying modified-in-file: ${error.message}`,
+        "tool"
+      );
+      return new Error(`Error applying modified-in-file: ${error.message}`);
+    }
+  }
+
+  private process() {
     const filePath = this.extractFilePath();
     const fullPath = path.join(this.baseDir, filePath);
 

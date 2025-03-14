@@ -41,29 +41,46 @@ export class WorkspaceManager {
   /**
    * Create a new workspace
    */
-  createWorkspace(name: string, basePath: string): Workspace {
-    const workspacePath = path.join(basePath, name);
-
-    // Create workspace directory if it doesn't exist
-    if (!fs.existsSync(workspacePath)) {
-      fs.mkdirSync(workspacePath, { recursive: true });
+  async createWorkspace(name: string, basePath: string): Promise<Workspace> {
+    if (!name || !basePath) {
+      throw new Error("Workspace name and path are required");
     }
 
-    // Insert workspace into database
-    const stmt = db.prepare(
-      "INSERT INTO workspaces (name, path) VALUES (?, ?)"
-    );
-    const result = stmt.run(name, workspacePath).then((r) => r.lastID);
+    // Create workspace directory if it doesn't exist
+    if (!fs.existsSync(basePath)) {
+      fs.mkdirSync(basePath, { recursive: true });
+    }
 
-    const workspace: Workspace = {
-      id: Number(result),
-      name,
-      path: workspacePath,
-      createdAt: new Date(),
-    };
+    const dumpWsPath = path.join(basePath, ".dump_ws");
+    const logsPath = path.join(dumpWsPath, "logs");
+    if (!fs.existsSync(dumpWsPath)) {
+      fs.mkdirSync(dumpWsPath, { recursive: true });
+    }
+    if (!fs.existsSync(logsPath)) {
+      fs.mkdirSync(logsPath, { recursive: true });
+    }
 
-    this.currentWorkspace = workspace;
-    return workspace;
+    try {
+      // Insert workspace into database
+      const stmt = db.prepare(
+        "INSERT INTO workspaces (name, path) VALUES (?, ?)"
+      );
+      const result = await stmt.run([name, basePath]);
+      const lastId = result.lastID;
+
+      const workspace: Workspace = {
+        id: Number(lastId),
+        name,
+        path: basePath,
+        createdAt: new Date(),
+      };
+
+      this.currentWorkspace = workspace;
+      return workspace;
+    } catch (error) {
+      console.error("Database error:", error);
+      throw error;
+    }
   }
 
   /**
@@ -145,18 +162,6 @@ export class WorkspaceManager {
       timestamp: new Date(row.timestamp),
     }));
   }
-
-  /**
-   * Get the results directory path for the current workspace
-   */
-  getResultsPath(): string {
-    if (!this.currentWorkspace) {
-      throw new Error("No workspace is currently open");
-    }
-
-    return path.join(this.currentWorkspace.path, "results");
-  }
-
   /**
    * Get the logs directory path for the current workspace
    */
@@ -165,6 +170,6 @@ export class WorkspaceManager {
       throw new Error("No workspace is currently open");
     }
 
-    return path.join(this.currentWorkspace.path, "logs");
+    return path.join(this.currentWorkspace.path, ".dump_ws/logs");
   }
 }

@@ -1,10 +1,26 @@
 import path from "path";
 import { FileHandler } from "../../../shared/fileHandler";
 import { DiffBlock } from "../diffBlock";
+import { Logger } from "../../../helpers/logger";
 
 export class NewFileDiffBlock extends DiffBlock {
-  apply(): void {
-    this.process();
+  apply(): null | Error {
+    try {
+      Logger.logToMarkdown(
+        "NewFileDiffBlock",
+        `Applying new-file ${this.baseDir}`,
+        "tool"
+      );
+      this.process();
+      return null;
+    } catch (error: any) {
+      Logger.logToMarkdown(
+        "NewFileDiffBlock",
+        `❌ Error applying new-file: ${error.message}`,
+        "tool"
+      );
+      return new Error(`Error applying new-file: ${error.message}`);
+    }
   }
 
   process(): Error | null {
