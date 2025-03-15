@@ -2,7 +2,7 @@ import {
   AIProviderFactory,
   type AIProvider,
 } from "../providers/AIProviderFactory";
-import { aiInstructionPrompt } from "../prompts/frontend";
+import { aiInstructionPrompt } from "../prompts/mainPrompt";
 import { MCPClientManager } from "../MCP/MCPManager";
 import { WorkspaceManager } from "../workspace/WorkspaceManager";
 

@@ -1,6 +1,6 @@
-import fs from "fs";
 import path from "path";
-import { aiInstructionPrompt } from "./prompts/frontend";
+import { aiInstructionPrompt } from "./prompts/mainPrompt";
+import { aiInstructionPrompt as enhancedPrompt } from "./prompts/enhancedPrompt";
 import { MCPClientManager } from "./MCP/MCPManager";
 import {
   AIProviderFactory,
@@ -21,8 +21,8 @@ type ToolParams = {
 // AI Configuration
 const AI_CONFIG = {
   provider: "gemini",
-  // model: "gemini-2.0-flash",
-  model: "gemini-1.5-pro",
+  model: "gemini-2.0-flash",
+  // model: "gemini-1.5-pro",
   apiKey: "AIzaSyDs0ghsn-0UviJ4K0zUFxcWi17X_rmm_AQ",
 };
 
@@ -46,7 +46,7 @@ const aiProvider: AIProvider = aiProviderFactory.getProvider(
   {
     apiKey: AI_CONFIG.apiKey,
     model: AI_CONFIG.model,
-    systemInstruction: aiInstructionPrompt.replace(
+    systemInstruction: enhancedPrompt.replace(
       "{{MCPTOOLS}}",
       JSON.stringify(tools).replace(/\s/g, "")
     ),
