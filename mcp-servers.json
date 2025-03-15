@@ -1,12 +1,30 @@
 [
   {
-    "id": "figma-developer-mcp",
+    "id": "figma-developer-mcp-see",
     "name": "Figma Developer Mcp",
     "version": "1.0.0",
     "transportType": "sse",
     "transportConfig": {
       "endpoint": "http://localhost:3333/sse",
       "messageEndpoint": "http://localhost:3333/messages"
+    },
+    "capabilities": {
+      "tools": {},
+      "resources": {}
+    },
+    "autoConnect": true
+  },
+  {
+    "id": "figma-developer-mcp",
+    "name": "Figma Developer Mcp",
+    "version": "1.0.0",
+    "transportType": "stdio",
+    "transportConfig": {
+      "command": "npx",
+      "args": ["-y", "figma-developer-mcp", "--stdio"],
+      "env": {
+        "FIGMA_API_KEY": "figd_gs_FX0ILpMz0AVpNqDY0leV5j1aEgPSe5LweM_SW"
+      }
     },
     "capabilities": {
       "tools": {},

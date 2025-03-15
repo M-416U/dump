@@ -21,7 +21,8 @@ type ToolParams = {
 // AI Configuration
 const AI_CONFIG = {
   provider: "gemini",
-  model: "gemini-2.0-flash",
+  // model: "gemini-2.0-flash",
+  model: "gemini-1.5-pro",
   apiKey: "AIzaSyDs0ghsn-0UviJ4K0zUFxcWi17X_rmm_AQ",
 };
 

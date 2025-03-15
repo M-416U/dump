@@ -6,11 +6,6 @@ import { Logger } from "../../../helpers/logger";
 export class DeletedFileDiffBlock extends DiffBlock {
   apply(): null | Error {
     try {
-      Logger.logToMarkdown(
-        "DeletedFileDiffBlock",
-        `Applying delete-file ${this.baseDir}`,
-        "tool"
-      );
       this.process();
       return null;
     } catch (error: any) {

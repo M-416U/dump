@@ -1,17 +1,12 @@
 import * as path from "path";
 import * as fsExtra from "fs-extra";
 import { DiffBlock } from "../diffBlock";
-import { FileHandler } from "../../../shared/fileHandler";
 import { Logger } from "../../../helpers/logger";
+import { FileHandler } from "../../../shared/fileHandler";
 
 export class ReplaceInFileDiffBlock extends DiffBlock {
   apply(): null | Error {
     try {
-      Logger.logToMarkdown(
-        "ReplaceInFileDiffBlock",
-        `Applying replace-in-file ${this.baseDir}`,
-        "tool"
-      );
       this.process();
       return null;
     } catch (error: any) {
@@ -66,7 +61,7 @@ export class ReplaceInFileDiffBlock extends DiffBlock {
       }
 
       fileContent = fileContent.trimEnd();
-      fsExtra.writeFileSync(fullPath, fileContent, "utf8");
+      FileHandler.writeFile(fullPath, fileContent);
 
       console.log(`✅ Applied <REPLACEINFILE> modifications to ${filePath}`);
       return null;

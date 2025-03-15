@@ -36,9 +36,9 @@ export class FileHandler {
    * @param filePath The path to the file.
    * @param content The content to write.
    */
-  static writeFile(filePath: string, content: string): void {
+  static writeFile(filePath: string, content: string, encoding?: string): void {
     fsExtra.ensureDirSync(path.dirname(filePath));
-    fsExtra.writeFileSync(filePath, content, "utf8");
+    fsExtra.writeFileSync(filePath, content, (encoding as "utf8") || "utf8");
     console.log(`✅ Successfully wrote to file: ${filePath}`);
   }
 

@@ -57,11 +57,11 @@ export class DiffProcessor {
   private processBlock(diffBlock: string) {
     let blockInstance: DiffBlock | null = null;
 
-    if (diffBlock.includes("<REPLACEINFILE>")) {
+    if (diffBlock.startsWith("<REPLACEINFILE>")) {
       blockInstance = new ReplaceInFileDiffBlock(diffBlock);
-    } else if (diffBlock.includes("new file mode")) {
+    } else if (diffBlock.startsWith("new file mode")) {
       blockInstance = new NewFileDiffBlock(diffBlock);
-    } else if (diffBlock.includes("deleted file mode")) {
+    } else if (diffBlock.startsWith("deleted file mode")) {
       blockInstance = new DeletedFileDiffBlock(diffBlock);
     } else {
       blockInstance = new ModifiedFileDiffBlock(diffBlock);

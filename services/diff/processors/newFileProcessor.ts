@@ -6,11 +6,6 @@ import { Logger } from "../../../helpers/logger";
 export class NewFileDiffBlock extends DiffBlock {
   apply(): null | Error {
     try {
-      Logger.logToMarkdown(
-        "NewFileDiffBlock",
-        `Applying new-file ${this.baseDir}`,
-        "tool"
-      );
       this.process();
       return null;
     } catch (error: any) {

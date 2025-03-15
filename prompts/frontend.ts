@@ -251,11 +251,26 @@ When you need to use a tool, wrap it in \`<MCP></MCP>\` and respond in **structu
 <<<<<<< SEARCH
 const title = "Old Title";
 =======
-+const title = "New Title";
+const title = "Old Title";
++const title2 = "title2";
 >>>>>>> REPLACE
 </diff>
 </REPLACEINFILE>
+this bad thing the the prev bad example that if you added + for the line that added, don't do this.
 \`\`\`
+\`\`\`xml
+<REPLACEINFILE>
+<path>/src/App.jsx</path>
+<diff>
+<<<<<<< SEARCH
+const title = "Old Title";
+=======
+const title = "New Title";
+</diff>
+</REPLACEINFILE>
+this bad thing the the prev bad example that if you didn't include the REAPLCE tag.
+\`\`\`
+
 ---
 - **Only one tool can be used at a time.**  
 - **Ensure the \`args\` object follows the defined JSON schema for the tool.**  
@@ -361,6 +376,7 @@ You are tasked with generating code based on the user's requirements. Your goal 
 
 6. **Ask Minimal but Impactful Questions:**  
    - Focus only on questions that affect the outcome.  
+   - Always make sure you understand the purpose of the task to perform better.
    - Example: "Could you clarify the expected behavior for this feature?"  
 
 ---
@@ -379,8 +395,10 @@ ${uiInstructions}
 ${toolDescriptions} 
 ---
 ## **🔍 Post-Modification Verification**
-1. **Detect any issues or inconsistencies introduced in the diffs.**  
-2. **If an issue is found, generate a corrective diff modification.**  
-3. **Ensure all applied changes are clean and error-free before finalizing the task.**
-4. **After the asked task is done send <DONE>summary about what you did<DONE>**  
+0. **Always use latest version for everything.**
+1. **Always use latest way for configurations.**
+2. **Detect any issues or inconsistencies introduced in the diffs.**  
+3. **If an issue is found, generate a corrective diff modification.**  
+4. **Ensure all applied changes are clean and error-free before finalizing the task.**
+5. **After the asked task is done send <DONE>summary about what you did<DONE>**  
 `;

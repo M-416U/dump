@@ -9,6 +9,7 @@ type TransportType = "stdio" | "sse";
 type StdioConfig = {
   command: string;
   args?: string[];
+  env?: Record<string, string>;
 };
 
 type SSEConfig = {
@@ -493,6 +494,7 @@ export class MCPClientManager {
         return new StdioClientTransport({
           command: stdioConfig.command,
           args: stdioConfig.args || [],
+          env: stdioConfig.env,
         });
 
       case "sse":
