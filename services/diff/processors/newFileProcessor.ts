@@ -18,7 +18,7 @@ export class NewFileDiffBlock extends DiffBlock {
     }
   }
 
-  process(): Error | null {
+  process(): void {
     try {
       // Extract the file path from the diff block
       const filePathMatch =
@@ -73,10 +73,9 @@ export class NewFileDiffBlock extends DiffBlock {
       FileHandler.writeFile(fullPath, fileContent + "\n");
 
       console.log(`✅ Created new file: ${filePath}`);
-      return null;
     } catch (error: any) {
       console.error(`❌ Error processing new file: ${error.message}`);
-      return error;
+      throw new Error(error.message);
     }
   }
 }

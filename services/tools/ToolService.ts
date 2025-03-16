@@ -73,7 +73,7 @@ export class ToolService {
       `"WORKING DIRECTORY STRUCTURE":${files}\n\nTOOL RESULT:\n${result}`,
       "tool"
     );
-    return `"WORKING DIRECTORY STRUCTURE":${files}\n\nTOOL RESULT:\n${result}`;
+    return `TOOL RESULT:\n${result}\n---\n"WORKING DIRECTORY STRUCTURE":${files}\n`;
   }
 
   listWorkspaceFiles(): string {

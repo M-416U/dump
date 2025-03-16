@@ -68,12 +68,8 @@ export class DiffProcessor {
     }
 
     if (blockInstance) {
-      try {
-        console.log(`🚀 Processing block: ${diffBlock.substring(0, 50)}...`);
-        blockInstance.apply();
-      } catch (error: any) {
-        console.error(`❌ Error processing diff block: ${error.message}`);
-      }
+      console.log(`🚀 Processing block: ${diffBlock.substring(0, 50)}...`);
+      blockInstance.apply();
     } else {
       console.warn(
         `⚠️ Unknown diff block type: ${diffBlock.substring(0, 50)}...`

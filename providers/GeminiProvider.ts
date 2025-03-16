@@ -41,7 +41,7 @@ export class GeminiProvider implements AIProvider {
     }
     Logger.logToMarkdown(
       "usage-metadata",
-      `===============\nMESSAGE:${message.substring(0, 51)}\n${JSON.stringify(
+      `===============\nMESSAGE:${message.substring(0, 300)}\n${JSON.stringify(
         response.response.usageMetadata,
         null,
         2

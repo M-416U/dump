@@ -19,7 +19,7 @@ export class ModifiedFileDiffBlock extends DiffBlock {
     }
   }
 
-  private process() {
+  private process(): void {
     const filePath = this.extractFilePath();
     const fullPath = path.join(this.baseDir, filePath);
 

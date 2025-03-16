@@ -17,7 +17,7 @@ export class DeletedFileDiffBlock extends DiffBlock {
       return new Error(`Error applying delete-file: ${error.message}`);
     }
   }
-  process(): Error | null {
+  process(): void {
     try {
       // Extract the file path from the diff block
       const filePathMatch =
@@ -39,11 +39,9 @@ export class DeletedFileDiffBlock extends DiffBlock {
       } else {
         console.warn(`⚠️ File does not exist: ${filePath}`);
       }
-
-      return null;
     } catch (error: any) {
       console.error(`❌ Error processing deleted file: ${error.message}`);
-      return error;
+      throw new Error(`${error.message}`);
     }
   }
 }

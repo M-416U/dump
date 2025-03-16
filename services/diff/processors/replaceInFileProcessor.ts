@@ -18,7 +18,7 @@ export class ReplaceInFileDiffBlock extends DiffBlock {
       return new Error(`Error applying replace-in-file: ${error.message}`);
     }
   }
-  process(): Error | null {
+  process(): void {
     try {
       // 1. Extract & Validate Input
       const pathMatch = this.diffContent.match(/<path>(.*?)<\/path>/);
@@ -64,10 +64,9 @@ export class ReplaceInFileDiffBlock extends DiffBlock {
       FileHandler.writeFile(fullPath, fileContent);
 
       console.log(`✅ Applied <REPLACEINFILE> modifications to ${filePath}`);
-      return null;
     } catch (error: any) {
       console.error(`❌ Error in processReplaceInFile: ${error.message}`);
-      return error;
+      throw new Error(error.message);
     }
   }
 
