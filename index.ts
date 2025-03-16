@@ -127,10 +127,7 @@ async function main(): Promise<void> {
 
     // Send the tool output back to the planner for next steps
     const nextStepResponse = await retryRequest(() =>
-      aiProvider.sendMessage(
-        frontPlannerChat,
-        `Tool output: ${toolOutput}\n\nCurrent directory structure:\n${toolService.listWorkspaceFiles()}\n\nWhat is the next step? Remember to use the proper tool format.`
-      )
+      aiProvider.sendMessage(frontPlannerChat, `${toolOutput}`)
     );
 
     response = nextStepResponse;

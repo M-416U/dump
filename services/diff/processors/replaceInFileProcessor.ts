@@ -120,7 +120,9 @@ export class ReplaceInFileDiffBlock extends DiffBlock {
     searchString: string,
     replaceString: string
   ): string {
-    const normalizedSearch = this.normalizeSearch(searchString); // Normalize the search string
+    const normalizedSearch = this.normalizeSearch(
+      this.fixDiff(searchString.split("\n")).join("\n")
+    ); // Normalize the search string
     const fileLines = fileContent.split("\n");
     let matchStart = -1;
     let matchEnd = -1;
@@ -169,16 +171,14 @@ export class ReplaceInFileDiffBlock extends DiffBlock {
   private fixDiff(arr: string[]): string[] {
     return arr
       .filter((line) => {
-        // Remove lines that start with -
         if (line.startsWith("-")) {
           return false;
         }
         return true;
       })
       .map((line) => {
-        // For lines starting with +, remove the + and add 2 spaces
-        if (line.startsWith("+ ")) {
-          return "  " + line.substring(2);
+        if (line.startsWith("+")) {
+          return line.substring(1);
         }
         return line;
       });

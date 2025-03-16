@@ -68,8 +68,12 @@ export class ToolService {
       }
     }
 
-    Logger.logToMarkdown(sessionId, result, "tool");
-    return `${files}\n\nResult:\n${result}`;
+    Logger.logToMarkdown(
+      sessionId,
+      `"WORKING DIRECTORY STRUCTURE":${files}\n\nTOOL RESULT:\n${result}`,
+      "tool"
+    );
+    return `"WORKING DIRECTORY STRUCTURE":${files}\n\nTOOL RESULT:\n${result}`;
   }
 
   listWorkspaceFiles(): string {
