@@ -22,7 +22,7 @@ export class ReplaceInFileDiffBlock extends DiffBlock {
     try {
       // 1. Extract & Validate Input
       const pathMatch = this.diffContent.match(/<path>(.*?)<\/path>/);
-      const diffMatch = this.diffContent.match(/<diff>([\s\S]*?)<\/diff>/);
+      const diffMatch = this.diffContent.match(/<blocks>([\s\S]*?)<\/blocks>/);
       if (!pathMatch || !diffMatch) {
         throw new Error("Invalid <REPLACEINFILE> format");
       }

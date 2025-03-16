@@ -6,15 +6,10 @@ export const toolDescriptions = `
    - **Only use \`<CODE>\` when creating a file for the first time** or deleting a file.  
    - If creating multiple files, wrap each file's diff in a separate \`<DIFFBLOCK>\`.  
 
-2. **Use \`<REPLACEINFILE>\` for modifying existing files:**  
-   - Match the existing content exactly in the \`SEARCH\` section.  
-   - Ensure the \`REPLACE\` section is clean and properly formatted.  
-   - **Do NOT add \`+\` or \`-\` symbols** in \`<REPLACEINFILE>\` search/replace blocks.  
-
-3. **Ensure consistent indentation and formatting.**  
-4. **ALWAYS run linting and cleanup after generation.**  
-5. **Every SEARCH MUST HAVE a REPLACE.**  
-6. **Never assume unknown information—always ask.**  
+2. **Ensure consistent indentation and formatting.**  
+3. **ALWAYS run linting and cleanup after generation.**  
+4. **Every SEARCH MUST HAVE a REPLACE.**  
+5. **Never assume unknown information—always ask.**  
 
 ---
 
@@ -59,9 +54,9 @@ export const toolDescriptions = `
 - **Purpose:** Generate new files or delete files only.  
 - **Input:** Code wrapped in one or more \`<DIFFBLOCK>\` elements.  
 - **Output:** "Code processed successfully" or error.  
-- **Usage Notes:**  
+- **Usage Notes:**
+   - Use \`<CODE>\` **EXCLUSIVELY** for creating files for the very first time or deleting existing files.  
    - Use \`<CODE>\` **only when creating a file for the first time** or deleting a file.  
-   - **DO NOT** use \`<CODE>\` to modify existing files—use \`<REPLACEINFILE>\` instead.  
    - **DO USE \`+\` and \`-\` symbols** in \`<CODE>\` blocks following git-style diff format.
    - You can create multiple files in one \`<CODE>\` block by adding each file's diff inside a separate \`<DIFFBLOCK>\`.  
 
@@ -100,29 +95,49 @@ deleted file mode 100644
 
 ---
 
-### \`<REPLACEINFILE>\`  
-- **Purpose:** Modify existing files.  
-- **Input:** File path and diff block.  
-- **Output:** "File modified successfully" or error.  
-- **Usage Notes:**  
-   - Match the existing content exactly in the \`SEARCH\` section.  
-   - Ensure the \`REPLACE\` section is clean and properly formatted.  
-   - **Do NOT add \`+\` or \`-\` symbols** in search/replace blocks.  
-
-✅ Example:  
-\`\`\`xml
+## REPLACEINFILE
+Description: Request to replace sections of content in an existing file using SEARCH/REPLACE blocks that define exact changes to specific parts of the file. This tool should be used when you need to make targeted changes to specific parts of a file.
+Parameters:
+- path: (required) The path of the file to modify (relative to the current working directory)
+- blocks: (required) One or more SEARCH/REPLACE blocks following this exact format:
+  \`\`\`
+  <<<<<<< SEARCH
+  [exact content to find]
+  =======
+  [new content to replace with]
+  >>>>>>> REPLACE
+  \`\`\`
+  Critical rules:
+  1. SEARCH content must match the associated file section to find EXACTLY:
+     * Match character-for-character including whitespace, indentation, line endings
+     * Include all comments, docstrings, etc.
+  2. SEARCH/REPLACE blocks will ONLY replace the first match occurrence.
+     * Including multiple unique SEARCH/REPLACE blocks if you need to make multiple changes.
+     * Include *just* enough lines in each SEARCH section to uniquely match each set of lines that need to change.
+     * When using multiple SEARCH/REPLACE blocks, list them in the order they appear in the file.
+  3. Keep SEARCH/REPLACE blocks concise:
+     * Break large SEARCH/REPLACE blocks into a series of smaller blocks that each change a small portion of the file.
+     * Include just the changing lines, and a few surrounding lines if needed for uniqueness.
+     * Do not include long runs of unchanging lines in SEARCH/REPLACE blocks.
+     * Each line must be complete. Never truncate lines mid-way through as this can cause matching failures.
+  4. Special operations:
+     * To move code: Use two SEARCH/REPLACE blocks (one to delete from original + one to insert at new location)
+     * To delete code: Use empty REPLACE section
+     * **Notes**
+     *   every SEARCH must have closing REPLACE tag between them \`=======\`
+Usage:
 <REPLACEINFILE>
-<path>/src/App.jsx</path>
-<diff>
-<<<<<<< SEARCH
-const title = "Old Title";
-=======
-const title = "New Title";
->>>>>>> REPLACE
-</diff>
+<path>File path here</path>
+<blocks>
+Search and replace blocks here
+   ex:
+      <<<<<<< SEARCH
+      content to search
+      =======
+      new content
+      >>>>>>> REPLACE
+</blocks>
 </REPLACEINFILE>
-\`\`\`
-
 ---
 
 ### \`<LISTFILES>\`  
@@ -161,18 +176,29 @@ const title = "New Title";
 ✅ **Analyze the task carefully.**  
 ✅ **Break it down into independent, small steps.**  
 ✅ **Gather ALL information before proceeding.**  
-✅ **Use ONE tool at a time.**  
-✅ **Use \`<CODE>\` for new files and \`<REPLACEINFILE>\` for modifying files.**  
+✅ **Use ONE tool at a time.** 
 ✅ **Ensure proper linting and cleanup after modification.**  
 ✅ **Continue until the task is fully completed and verified.**  
 ✅ **Respond with small text, not long responses.**  
 ✅ **Every SEARCH MUST HAVE a REPLACE.**  
 ✅ **Always use the latest versions for libraries and configurations.**  
-✅ **Never assume things—always ask for unknown information.**  
-✅ **Never add \`+\` or \`-\` inside REPLACEINFILE block.**  
+✅ **Never assume things—always ask for unknown information.** 
 
 ---
-
+✅ Modify Existing File:  
+\`\`\`xml
+<REPLACEINFILE>
+<path>/src/App.jsx</path>
+<blocks>
+<<<<<<< SEARCH
+const title = "Old Title";
+=======
+const title = "New Title";
+>>>>>>> REPLACE
+</blocks>
+</REPLACEINFILE>
+\`\`\`
+---
 ## **Correct Usage Examples**  
 ✅ New File:  
 \`\`\`xml
@@ -186,20 +212,6 @@ new file mode 100644
 +module.exports = config;
 </DIFFBLOCK>
 </CODE>
-\`\`\`
-
-✅ Modify Existing File:  
-\`\`\`xml
-<REPLACEINFILE>
-<path>/src/App.jsx</path>
-<diff>
-<<<<<<< SEARCH
-const title = "Old Title";
-=======
-const title = "New Title";
->>>>>>> REPLACE
-</diff>
-</REPLACEINFILE>
 \`\`\`
 
 ✅ File Deletion:  
@@ -228,40 +240,20 @@ When you need to use a tool, wrap it in \`<MCP></MCP>\` and respond in **structu
 }
 </MCP>
 \`\`\`
-
 ---
-
-## **Bad Examples**  
-❌ Adding \`+\` in \`REPLACE\` block:  
-\`\`\`xml
-<REPLACEINFILE>
-<path>/src/App.jsx</path>
-<diff>
-<<<<<<< SEARCH
-const title = "Old Title";
-=======
-const title = "Old Title";
-+const title2 = "title2";
->>>>>>> REPLACE
-</diff>
-</REPLACEINFILE>
-\`\`\`
-
-❌ Missing \`REPLACE\` block:  
-\`\`\`xml
-<REPLACEINFILE>
-<path>/src/App.jsx</path>
-<diff>
-<<<<<<< SEARCH
-const title = "Old Title";
-=======
-const title = "New Title";
-</diff>
-</REPLACEINFILE>
-\`\`\`
-
+**BAD EXAMPLES NEVER USE**
+    \`\`\`
+   <REPLACEINFILE>
+      <path>index.html</path>
+      <blocks>
+      <<<<<<< SEARCH
+      =======
+      =======
+      </blocks>
+   </REPLACEINFILE>
+    \`\`\`
+   -MISSING THE REPLACE TAG
 ---
-
 - **Only one tool can be used at a time.**  
 - **Ensure the \`args\` object follows the defined JSON schema for the tool.**  
 `;
