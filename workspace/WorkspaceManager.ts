@@ -133,11 +133,11 @@ export class WorkspaceManager {
     if (!this.currentWorkspace) {
       throw new Error("No workspace is currently open");
     }
-
+    console.log("saving message", role, content);
     const stmt = db.prepare(
       "INSERT INTO chat_history (workspace_id, role, content) VALUES (?, ?, ?)"
     );
-    stmt.run(this.currentWorkspace.id, role, content);
+    stmt.run([this.currentWorkspace.id, role, content]);
   }
 
   /**

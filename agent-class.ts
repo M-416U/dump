@@ -54,6 +54,7 @@ export class CodeAgent {
     this.verbose = config.verbose !== undefined ? config.verbose : true;
     this.toolService = new ToolService();
     this.workspaceManager = new WorkspaceManager();
+    global.workspaceManager = this.workspaceManager;
     // Use custom input handler if provided, otherwise use the default ToolFunctions.askUser
     this.inputHandler = config.inputHandler || ToolFunctions.askUser;
 

@@ -36,7 +36,7 @@ export class ToolService {
     const { path: workspacePath, id: workspaceId } = workspace;
     const sessionId = `workspace-${workspaceId}`;
     Logger.logToMarkdown(sessionId, response, "tool");
-
+    workspaceManager.saveChatMessage("system", response);
     // Build regex dynamically from existing handlers
     const availableTools = Object.keys(this.toolHandlers).join("|");
     const toolRegex = new RegExp(`<(${availableTools})>([\\s\\S]*?)<\\/\\1>`);
@@ -73,6 +73,7 @@ export class ToolService {
       `"WORKING DIRECTORY STRUCTURE":${files}\n\nTOOL RESULT:\n${result}`,
       "tool"
     );
+    workspaceManager.saveChatMessage("user", result);
     return `TOOL RESULT:\n${result}\n---\n"WORKING DIRECTORY STRUCTURE":${files}\n`;
   }
 
