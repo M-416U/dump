@@ -1,10 +1,7 @@
-import type {
-  Workspace,
-  WorkspaceManager,
-} from "../workspace/WorkspaceManager";
+// import type { Workspace, WorkspaceManager } from "../codebase/WorkspaceManager";
 
-declare global {
-  var workspace: Workspace;
-  var workspaceManager: WorkspaceManager;
-}
-export {};
+// declare global {
+//   var workspace: Workspace;
+//   var workspaceManager: WorkspaceManager;
+// }
+// export {};

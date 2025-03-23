@@ -2,7 +2,6 @@ import { applyPatch, parsePatch, type ParsedDiff } from "diff";
 import path from "path";
 import { FileHandler } from "../../../shared/fileHandler";
 import { DiffBlock } from "../diffBlock";
-import { Logger } from "../../../helpers/logger";
 
 export class ModifiedFileDiffBlock extends DiffBlock {
   apply(): null | Error {
@@ -10,11 +9,6 @@ export class ModifiedFileDiffBlock extends DiffBlock {
       this.process();
       return null;
     } catch (error: any) {
-      Logger.logToMarkdown(
-        "ModifiedFileDiffBlock",
-        `❌ Error applying modified-in-file: ${error.message}`,
-        "tool"
-      );
       return new Error(`Error applying modified-in-file: ${error.message}`);
     }
   }

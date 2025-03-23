@@ -5,6 +5,10 @@ import { NewFileDiffBlock } from "./processors/newFileProcessor";
 import { ReplaceInFileDiffBlock } from "./processors/replaceInFileProcessor";
 
 export class DiffProcessor {
+  private codebase: string;
+  constructor(codebase: string) {
+    this.codebase = codebase;
+  }
   process(diffContent: string) {
     try {
       const blocks = this.splitDiffBlocks(diffContent);
@@ -58,17 +62,16 @@ export class DiffProcessor {
     let blockInstance: DiffBlock | null = null;
 
     if (diffBlock.startsWith("<REPLACEINFILE>")) {
-      blockInstance = new ReplaceInFileDiffBlock(diffBlock);
+      blockInstance = new ReplaceInFileDiffBlock(diffBlock, this.codebase);
     } else if (diffBlock.startsWith("new file mode")) {
-      blockInstance = new NewFileDiffBlock(diffBlock);
+      blockInstance = new NewFileDiffBlock(diffBlock, this.codebase);
     } else if (diffBlock.startsWith("deleted file mode")) {
-      blockInstance = new DeletedFileDiffBlock(diffBlock);
+      blockInstance = new DeletedFileDiffBlock(diffBlock, this.codebase);
     } else {
-      blockInstance = new ModifiedFileDiffBlock(diffBlock);
+      blockInstance = new ModifiedFileDiffBlock(diffBlock, this.codebase);
     }
 
     if (blockInstance) {
-      console.log(`🚀 Processing block: ${diffBlock.substring(0, 50)}...`);
       blockInstance.apply();
     } else {
       console.warn(

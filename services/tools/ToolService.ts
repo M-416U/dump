@@ -1,11 +1,9 @@
 import fs from "fs";
 import path from "path";
-import { Logger } from "../../helpers/logger";
 
 export type ToolParams = {
   content: string;
-  resultsDir: string;
-  sessionId: string;
+  codebase: string;
 };
 
 export type ToolHandler = (params: ToolParams) => Promise<string>;
@@ -17,10 +15,13 @@ export class ToolService {
     "dist",
     "build",
     "logs",
-    ".dump_ws",
   ]);
   private IGNORE_FILES = new Set([".DS_Store", "thumbs.db"]);
   private toolHandlers: Record<string, ToolHandler> = {};
+  private codebase: string;
+  constructor(codebase: string) {
+    this.codebase = codebase;
+  }
 
   registerTool(name: string, handler: ToolHandler): void {
     this.toolHandlers[name] = handler;
@@ -33,19 +34,13 @@ export class ToolService {
   }
 
   async executeTool(response: string): Promise<string> {
-    const { path: workspacePath, id: workspaceId } = workspace;
-    const sessionId = `workspace-${workspaceId}`;
-    Logger.logToMarkdown(sessionId, response, "tool");
-    workspaceManager.saveChatMessage("system", response);
-    // Build regex dynamically from existing handlers
     const availableTools = Object.keys(this.toolHandlers).join("|");
     const toolRegex = new RegExp(`<(${availableTools})>([\\s\\S]*?)<\\/\\1>`);
 
     const toolMatch = response.match(toolRegex);
-    const files = this.listWorkspaceFiles();
+    const files = this.listCodebaseFiles(this.codebase);
 
     if (!toolMatch) {
-      Logger.logToMarkdown(sessionId, "no tool", "tool");
       return `Current Structure:\n${files}\n`;
     }
 
@@ -59,28 +54,19 @@ export class ToolService {
         // Pass standardized parameters object with content and necessary directories
         const params: ToolParams = {
           content: content!,
-          resultsDir: workspacePath,
-          sessionId: sessionId,
+          codebase: this.codebase,
         };
         result = await this.toolHandlers[tool](params);
       } catch (error: any) {
         result = `Error executing ${tool}: ${error.message}`;
       }
     }
-
-    Logger.logToMarkdown(
-      sessionId,
-      `"WORKING DIRECTORY STRUCTURE":${files}\n\nTOOL RESULT:\n${result}`,
-      "tool"
-    );
-    workspaceManager.saveChatMessage("user", result);
     return `TOOL RESULT:\n${result}\n---\n"WORKING DIRECTORY STRUCTURE":${files}\n`;
   }
 
-  listWorkspaceFiles(): string {
+  listCodebaseFiles(codebase: string = this.codebase): string {
     try {
       let output = "";
-      const workspacePath = workspace.path;
 
       const readDirRecursive = (directory: string, indent: string = "") => {
         const items = fs.readdirSync(directory);
@@ -99,7 +85,7 @@ export class ToolService {
         }
       };
 
-      readDirRecursive(workspacePath, "  ");
+      readDirRecursive(codebase, "  ");
 
       return `\nCurrent Structure:\n ${
         output.trim() || "No files generated yet"

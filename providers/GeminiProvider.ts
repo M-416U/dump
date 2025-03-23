@@ -1,6 +1,5 @@
 import { ChatSession, GoogleGenerativeAI } from "@google/generative-ai";
 import type { AIProvider, AIProviderConfig } from "./AIProviderFactory";
-import { Logger } from "../helpers/logger";
 
 export class GeminiProvider implements AIProvider {
   private genAI: GoogleGenerativeAI;
@@ -39,22 +38,6 @@ export class GeminiProvider implements AIProvider {
       this.outputTokens +=
         response.response.usageMetadata.candidatesTokenCount || 0;
     }
-    Logger.logToMarkdown(
-      "usage-metadata",
-      `===============\nMESSAGE:${message.substring(0, 300)}\n${JSON.stringify(
-        response.response.usageMetadata,
-        null,
-        2
-      )}\n===============\n`,
-      "tool"
-    );
-    Logger.logToMarkdown(
-      "USAGE",
-      `===============\ninputTokens:${this.inputTokens}\noutputTokens:${
-        this.inputTokens
-      }\nTOTAL:${this.inputTokens + this.outputTokens}\n===============\n`,
-      "tool"
-    );
     return response.response.text().trim();
   }
 

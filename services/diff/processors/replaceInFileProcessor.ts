@@ -1,7 +1,6 @@
 import * as path from "path";
 import * as fsExtra from "fs-extra";
 import { DiffBlock } from "../diffBlock";
-import { Logger } from "../../../helpers/logger";
 import { FileHandler } from "../../../shared/fileHandler";
 
 export class ReplaceInFileDiffBlock extends DiffBlock {
@@ -10,11 +9,6 @@ export class ReplaceInFileDiffBlock extends DiffBlock {
       this.process();
       return null;
     } catch (error: any) {
-      Logger.logToMarkdown(
-        "ReplaceInFileDiffBlock",
-        `❌ Error applying replace-in-file: ${error.message}`,
-        "tool"
-      );
       return new Error(`Error applying replace-in-file: ${error.message}`);
     }
   }
@@ -52,8 +46,6 @@ export class ReplaceInFileDiffBlock extends DiffBlock {
  === DIFF CONTENT ===
  ${diffContent}
  `;
-
-        Logger.logToMarkdown("ReplaceInFileDiffBlock", `${logContent}`, "tool");
 
         throw new Error(
           `SEARCH block mismatch in ${filePath}: ${error.message}`

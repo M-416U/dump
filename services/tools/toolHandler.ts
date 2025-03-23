@@ -1,4 +1,3 @@
-import { Logger } from "../../helpers/logger";
 import { MCPClientManager } from "../../MCP/MCPManager";
 import { DiffProcessor } from "../diff/diffProcessor";
 import { ReplaceInFileDiffBlock } from "../diff/processors/replaceInFileProcessor";
@@ -9,9 +8,12 @@ import path from "path";
 
 export class ToolHandlerFunctions {
   constructor() {}
-  static async readFileHandler({ content }: ToolParams): Promise<string> {
+  static async readFileHandler({
+    content,
+    codebase,
+  }: ToolParams): Promise<string> {
     if (!content) return "No file path provided";
-    const filePath = path.join(workspace.path, content.trim());
+    const filePath = path.join(codebase, content.trim());
     if (fs.existsSync(filePath)) {
       return fs.readFileSync(filePath, "utf8");
     }
@@ -34,10 +36,8 @@ export class ToolHandlerFunctions {
     // return await ToolFunctions.executeCommand(command);
   }
 
-  static async codeHandler({ content }: ToolParams): Promise<string> {
+  static async codeHandler({ content, codebase }: ToolParams): Promise<string> {
     if (!content) return "No code content provided";
-    console.log("Processing CODE block with content length:", content.length);
-    console.log("First 100 chars:", content.substring(0, 100));
 
     if (
       !content.includes("<DIFFBLOCK>") &&
@@ -47,33 +47,39 @@ export class ToolHandlerFunctions {
     ) {
       content = `<DIFFBLOCK>\n${content}\n</DIFFBLOCK>`;
     }
-    const diffProcessor = new DiffProcessor();
+    const diffProcessor = new DiffProcessor(codebase);
     const diffResult = diffProcessor.process(content);
     return diffResult ? diffResult.message : "Code processed successfully";
   }
 
-  static async replaceInFileHandler({ content }: ToolParams): Promise<string> {
+  static async replaceInFileHandler({
+    content,
+    codebase,
+  }: ToolParams): Promise<string> {
     if (!content) return "No content provided";
-    const diffProcessor = new ReplaceInFileDiffBlock(content);
+    const diffProcessor = new ReplaceInFileDiffBlock(content, codebase);
     const diffResult = diffProcessor.apply();
     return diffResult ? diffResult.message : "File modified successfully";
   }
 
-  static async listFilesHandler({}: ToolParams): Promise<string> {
+  static async listFilesHandler({ codebase }: ToolParams): Promise<string> {
     try {
-      const items = fs.readdirSync(workspace.path);
+      const items = fs.readdirSync(codebase);
       return items.join("\n");
     } catch (error: any) {
       return `Error listing files: ${error.message}`;
     }
   }
 
-  static async writeToFileHandler({ content }: ToolParams): Promise<string> {
+  static async writeToFileHandler({
+    content,
+    codebase,
+  }: ToolParams): Promise<string> {
     if (!content) return "No content provided";
     const pathMatch = content.match(/<path>(.*?)<\/path>/s);
     const contentMatch = content.match(/<content>(.*?)<\/content>/s);
     if (pathMatch && contentMatch) {
-      const filePath = path.join(workspace.path, pathMatch[1]!.trim());
+      const filePath = path.join(codebase, pathMatch[1]!.trim());
       const fileContent = contentMatch[1]!.trim();
       return await ToolFunctions.writeToFile(filePath, fileContent);
     }
