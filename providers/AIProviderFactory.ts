@@ -10,6 +10,11 @@ export interface AIProviderConfig {
 export interface AIProvider {
   startChat(): any;
   sendMessage(chat: any, message: string): Promise<string>;
+  sendMessageStream?(
+    chat: any,
+    message: string,
+    onChunk: (chunk: string) => void
+  ): Promise<string>;
 }
 
 export class AIProviderFactory {

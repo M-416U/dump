@@ -170,19 +170,6 @@ Search and replace blocks here
 ## **MCP Tools**  
 {{MCPTOOLS}}
 
----
-
-## **Execution Flow**  
-✅ **Analyze the task carefully.**  
-✅ **Break it down into independent, small steps.**  
-✅ **Gather ALL information before proceeding.**  
-✅ **Use ONE tool at a time.** 
-✅ **Ensure proper linting and cleanup after modification.**  
-✅ **Continue until the task is fully completed and verified.**  
-✅ **Respond with small text, not long responses.**  
-✅ **Every SEARCH MUST HAVE a REPLACE.**  
-✅ **Always use the latest versions for libraries and configurations.**  
-✅ **Never assume things—always ask for unknown information.** 
 
 ---
 ✅ Modify Existing File:  

@@ -34,19 +34,6 @@ export class ReplaceInFileDiffBlock extends DiffBlock {
         fileContent = this.constructNewFileContent(diffContent, fullPath);
       } catch (error: any) {
         console.error(`❌ Diff processing failed: ${error.message}`);
-
-        const logContent = `
- ERROR: ${error.message}
- FILE PATH: ${filePath}
- TIMESTAMP: ${new Date().toISOString()}
- 
- === FILE CONTENT ===
- ${fileContent}
- 
- === DIFF CONTENT ===
- ${diffContent}
- `;
-
         throw new Error(
           `SEARCH block mismatch in ${filePath}: ${error.message}`
         );
@@ -54,8 +41,6 @@ export class ReplaceInFileDiffBlock extends DiffBlock {
 
       fileContent = fileContent.trimEnd();
       FileHandler.writeFile(fullPath, fileContent);
-
-      console.log(`✅ Applied <REPLACEINFILE> modifications to ${filePath}`);
     } catch (error: any) {
       console.error(`❌ Error in processReplaceInFile: ${error.message}`);
       throw new Error(error.message);
@@ -76,7 +61,6 @@ export class ReplaceInFileDiffBlock extends DiffBlock {
     let fileContent = fsExtra.readFileSync(filePath, "utf8");
 
     searchReplaceBlocks.forEach((block: string, index) => {
-      console.log(`Processing block #${index + 1}:`, block);
       const match = block.match(
         /<<<<<<< SEARCH\s*([\s\S]*?)\s*=======\s*([\s\S]*?)\s*>>>>>>> REPLACE/
       );
@@ -89,7 +73,6 @@ export class ReplaceInFileDiffBlock extends DiffBlock {
       const replacePart = match[2]?.trimEnd() ?? "";
 
       try {
-        console.log("Attempting to match search string:", searchPart);
         fileContent = this.replaceCodeInFile(
           fileContent,
           searchPart,

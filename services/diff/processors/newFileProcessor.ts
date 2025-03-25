@@ -26,8 +26,6 @@ export class NewFileDiffBlock extends DiffBlock {
       const filePath = filePathMatch[1]?.trim().replace(/^b\//, "") ?? "";
       const fullPath = path.join(this.baseDir, filePath);
 
-      console.log(`📦 Processing new file: ${filePath}`);
-
       const lines = this.diffContent.split("\n");
       let contentLines: string[] = [];
       let capture = false;
@@ -65,8 +63,6 @@ export class NewFileDiffBlock extends DiffBlock {
 
       const fileContent = contentLines.join("\n");
       FileHandler.writeFile(fullPath, fileContent + "\n");
-
-      console.log(`✅ Created new file: ${filePath}`);
     } catch (error: any) {
       console.error(`❌ Error processing new file: ${error.message}`);
       throw new Error(error.message);

@@ -24,6 +24,8 @@ export interface CodeAgentConfig {
   maxIterations?: number;
   verbose?: boolean;
   inputHandler?: (question: string) => Promise<string>;
+  streamResponse?: boolean;
+  onResponseChunk?: (chunk: string) => void;
 }
 
 export class CodeAgent {
@@ -34,6 +36,8 @@ export class CodeAgent {
   private maxIterations: number;
   private verbose: boolean;
   private inputHandler: (question: string) => Promise<string>;
+  private streamResponse: boolean;
+  private onResponseChunk: (chunk: string) => void;
 
   constructor(config: CodeAgentConfig = {}) {
     if (config.codebase === undefined) {
@@ -44,6 +48,12 @@ export class CodeAgent {
     this.verbose = config.verbose !== undefined ? config.verbose : true;
     this.toolService = new ToolService(this.codebase);
     this.inputHandler = config.inputHandler || ToolFunctions.askUser;
+    this.streamResponse = config.streamResponse || false;
+    this.onResponseChunk =
+      config.onResponseChunk ||
+      ((chunk: string) => {
+        if (this.verbose) console.log(chunk);
+      });
 
     ToolFunctions.askUser = async (question: string) => {
       return this.inputHandler(question);
@@ -64,7 +74,7 @@ export class CodeAgent {
       {
         apiKey: DEFAULT_AI_CONFIG.apiKey,
         model: DEFAULT_AI_CONFIG.model,
-        systemInstruction: lander.replace(
+        systemInstruction: enhancedPrompt.replace(
           "{{MCPTOOLS}}",
           JSON.stringify(tools).replace(/\s/g, "")
         ),
@@ -105,33 +115,59 @@ export class CodeAgent {
   }
 
   async processTask(idea: string): Promise<string> {
-    const stepResponse = await this.retryRequest(() =>
-      this.aiProvider.sendMessage(
-        this.frontPlannerChat,
-        `${idea}\n\n${this.toolService.listCodebaseFiles()}`
-      )
-    );
+    let stepResponse: string;
 
-    let response = stepResponse;
+    if (this.streamResponse && this.aiProvider.sendMessageStream) {
+      stepResponse = await this.retryRequest(() =>
+        this.aiProvider.sendMessageStream!(
+          this.frontPlannerChat,
+          `${idea}\n\n${this.toolService.listCodebaseFiles()}`,
+          this.onResponseChunk
+        )
+      );
+    } else {
+      stepResponse = await this.retryRequest(() =>
+        this.aiProvider.sendMessage(
+          this.frontPlannerChat,
+          `${idea}\n\n${this.toolService.listCodebaseFiles()}`
+        )
+      );
+    }
 
-    response = response.trim();
-
+    let response = stepResponse.trim();
     let iterationCount = 0;
 
     while (iterationCount < this.maxIterations) {
       iterationCount++;
       let toolOutput = await this.toolService.executeTool(response);
 
-      const nextStepResponse = await this.retryRequest(() =>
-        this.aiProvider.sendMessage(this.frontPlannerChat, `${toolOutput}`)
-      );
+      let nextStepResponse: string;
 
-      response = nextStepResponse;
+      if (this.streamResponse && this.aiProvider.sendMessageStream) {
+        nextStepResponse = await this.retryRequest(() =>
+          this.aiProvider.sendMessageStream!(
+            this.frontPlannerChat,
+            `${toolOutput}`,
+            this.onResponseChunk
+          )
+        );
+      } else {
+        nextStepResponse = await this.retryRequest(() =>
+          this.aiProvider.sendMessage(this.frontPlannerChat, `${toolOutput}`)
+        );
+      }
 
-      response = response.trim();
+      response = nextStepResponse.trim();
     }
 
     return "task finished";
+  }
+
+  // Method to get the last response
+  getLastResponse(): string {
+    // This would need to be implemented by storing the last response
+    // For now, we'll return a placeholder
+    return "Last response not available";
   }
 }
 

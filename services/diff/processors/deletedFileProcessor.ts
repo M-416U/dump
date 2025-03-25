@@ -25,11 +25,8 @@ export class DeletedFileDiffBlock extends DiffBlock {
       const filePath = filePathMatch[1]?.trim().replace(/^a\//, "") ?? "";
       const fullPath = path.join(this.baseDir, filePath);
 
-      console.log(`🗑️ Deleting file: ${filePath}`);
-
       if (FileHandler.fileExists(fullPath)) {
         FileHandler.deleteFile(fullPath);
-        console.log(`✅ Deleted file: ${filePath}`);
       } else {
         console.warn(`⚠️ File does not exist: ${filePath}`);
       }

@@ -17,13 +17,8 @@ export class ModifiedFileDiffBlock extends DiffBlock {
     const filePath = this.extractFilePath();
     const fullPath = path.join(this.baseDir, filePath);
 
-    console.log(
-      `Processing modified file: ${filePath} (full path: ${fullPath})`
-    );
-
     if (!FileHandler.fileExists(fullPath)) {
       FileHandler.writeFile(fullPath, ""); // Create an empty file if missing
-      console.log(`📄 Created an empty file for modification: ${filePath}`);
     }
 
     // Read current file content

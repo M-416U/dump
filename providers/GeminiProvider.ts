@@ -41,6 +41,26 @@ export class GeminiProvider implements AIProvider {
     return response.response.text().trim();
   }
 
+  async sendMessageStream(
+    chat: ChatSession,
+    message: string,
+    onChunk: (chunk: string) => void
+  ): Promise<string> {
+    // Count tokens in the message before sending
+    const countResult = await this.generativeModel.countTokens(message);
+    this.inputTokens += countResult.totalTokens;
+
+    const responseStream = await chat.sendMessageStream(message);
+    let fullResponse = "";
+
+    for await (const chunk of responseStream.stream) {
+      const textChunk = chunk.text();
+      fullResponse += textChunk;
+      onChunk(textChunk);
+    }
+    return fullResponse.trim();
+  }
+
   // Methods to retrieve token usage
   getInputTokenCount(): number {
     return this.inputTokens;
