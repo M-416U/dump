@@ -33,7 +33,7 @@ export class ToolService {
     });
   }
 
-  async executeTool(response: string): Promise<string> {
+  async executeTool(response: string): Promise<string | null> {
     const availableTools = Object.keys(this.toolHandlers).join("|");
     const toolRegex = new RegExp(`<(${availableTools})>([\\s\\S]*?)<\\/\\1>`);
 
@@ -41,7 +41,7 @@ export class ToolService {
     const files = this.listCodebaseFiles(this.codebase);
 
     if (!toolMatch) {
-      return `Current Structure:\n${files}\n`;
+      return null;
     }
 
     const [, tool, content] = toolMatch;

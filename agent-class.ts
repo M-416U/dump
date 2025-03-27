@@ -10,6 +10,7 @@ import { ToolFunctions } from "./services/tools/ToolFunctions";
 import { ToolService } from "./services/tools/ToolService";
 import fs from "fs";
 import { lander } from "./prompts/uiPrompt";
+
 const DEFAULT_AI_CONFIG = {
   provider: "gemini",
   model: "gemini-2.0-flash",
@@ -30,43 +31,47 @@ export interface CodeAgentConfig {
 
 export class CodeAgent {
   private aiProvider!: AIProvider;
-  private frontPlannerChat: any;
+  private agentChat: any;
   private toolService: ToolService;
-  private codebase: string;
-  private maxIterations: number;
-  private verbose: boolean;
-  private inputHandler: (question: string) => Promise<string>;
-  private streamResponse: boolean;
-  private onResponseChunk: (chunk: string) => void;
+  private codebasePath: string;
+  private maxIterationCount: number;
+  private isVerbose: boolean;
+  private userInputHandler: (question: string) => Promise<string>;
+  private useStreamResponse: boolean;
+  private responseChunkHandler: (chunk: string) => void;
+  private lastAgentResponse: string = "";
 
   constructor(config: CodeAgentConfig = {}) {
     if (config.codebase === undefined) {
       throw new Error("Codebase path is required");
     }
-    this.codebase = config.codebase;
-    this.maxIterations = config.maxIterations || 999;
-    this.verbose = config.verbose !== undefined ? config.verbose : true;
-    this.toolService = new ToolService(this.codebase);
-    this.inputHandler = config.inputHandler || ToolFunctions.askUser;
-    this.streamResponse = config.streamResponse || false;
-    this.onResponseChunk =
+    if (config.inputHandler === undefined) {
+      throw new Error("inputHandler is required");
+    }
+    this.codebasePath = config.codebase;
+    this.maxIterationCount = config.maxIterations || 999;
+    this.isVerbose = config.verbose !== undefined ? config.verbose : true;
+    this.toolService = new ToolService(this.codebasePath);
+    this.userInputHandler = config.inputHandler || ToolFunctions.askUser;
+    this.useStreamResponse = config.streamResponse || false;
+    this.responseChunkHandler =
       config.onResponseChunk ||
       ((chunk: string) => {
-        if (this.verbose) console.log(chunk);
+        if (this.isVerbose) console.log(chunk);
       });
 
     ToolFunctions.askUser = async (question: string) => {
-      return this.inputHandler(question);
+      return this.userInputHandler(question);
     };
   }
 
   async initialize(): Promise<void> {
-    if (!fs.existsSync(this.codebase)) {
-      fs.mkdirSync(this.codebase, { recursive: true });
+    if (!fs.existsSync(this.codebasePath)) {
+      fs.mkdirSync(this.codebasePath, { recursive: true });
     }
-    const manager = new MCPClientManager();
-    await manager.initialize();
-    const tools = await manager.getAllTools();
+    const mcpManager = new MCPClientManager();
+    await mcpManager.initialize();
+    const availableTools = await mcpManager.getAllTools();
 
     const aiProviderFactory = new AIProviderFactory();
     this.aiProvider = aiProviderFactory.getProvider(
@@ -76,108 +81,108 @@ export class CodeAgent {
         model: DEFAULT_AI_CONFIG.model,
         systemInstruction: enhancedPrompt.replace(
           "{{MCPTOOLS}}",
-          JSON.stringify(tools).replace(/\s/g, "")
+          JSON.stringify(availableTools).replace(/\s/g, "")
         ),
       }
     );
 
-    this.frontPlannerChat = this.aiProvider.startChat();
+    this.agentChat = this.aiProvider.startChat();
     this.toolService.registerTools(toolHandlers);
   }
 
   async retryRequest<T>(
     apiCall: () => Promise<T>,
     maxRetries: number = 5,
-    delay: number = 5000
+    baseDelay: number = 5000
   ): Promise<T> {
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         return await apiCall();
       } catch (error: any) {
-        if (this.verbose) {
+        if (this.isVerbose) {
           console.error(`Attempt ${attempt} failed:`, error.message);
         }
         if (error.status === 429 || error.message.includes("429")) {
-          if (this.verbose) {
+          if (this.isVerbose) {
             console.log("Rate limit (429) detected, waiting for 2 minutes...");
           }
           await new Promise((resolve) => setTimeout(resolve, 120000));
         } else if (attempt === maxRetries) {
           throw new Error("Max retries reached. API request failed.");
         } else {
-          await new Promise((resolve) =>
-            setTimeout(resolve, delay * Math.pow(2, attempt - 1))
-          );
+          const exponentialDelay = baseDelay * Math.pow(2, attempt - 1);
+          await new Promise((resolve) => setTimeout(resolve, exponentialDelay));
         }
       }
     }
     throw new Error("Max retries reached. API request failed.");
   }
 
-  async processTask(idea: string): Promise<string> {
-    let stepResponse: string;
+  async processTask(taskDescription: string): Promise<string> {
+    // Initial message with task description and codebase files
+    const initialPrompt = `${taskDescription}\n\n${this.toolService.listCodebaseFiles()}`;
+    let currentResponse: string;
 
-    if (this.streamResponse && this.aiProvider.sendMessageStream) {
-      stepResponse = await this.retryRequest(() =>
+    // Send initial message to AI
+    if (this.useStreamResponse && this.aiProvider.sendMessageStream) {
+      currentResponse = await this.retryRequest(() =>
         this.aiProvider.sendMessageStream!(
-          this.frontPlannerChat,
-          `${idea}\n\n${this.toolService.listCodebaseFiles()}`,
-          this.onResponseChunk
+          this.agentChat,
+          initialPrompt,
+          this.responseChunkHandler
         )
       );
     } else {
-      stepResponse = await this.retryRequest(() =>
-        this.aiProvider.sendMessage(
-          this.frontPlannerChat,
-          `${idea}\n\n${this.toolService.listCodebaseFiles()}`
-        )
+      currentResponse = await this.retryRequest(() =>
+        this.aiProvider.sendMessage(this.agentChat, initialPrompt)
       );
     }
 
-    let response = stepResponse.trim();
+    this.lastAgentResponse = currentResponse.trim();
     let iterationCount = 0;
 
-    while (iterationCount < this.maxIterations) {
+    // Main agent loop
+    while (iterationCount < this.maxIterationCount) {
       iterationCount++;
-      let toolOutput = await this.toolService.executeTool(response);
 
-      let nextStepResponse: string;
+      // Execute tool based on AI response
+      let toolExecutionResult = await this.toolService.executeTool(
+        this.lastAgentResponse
+      );
 
-      if (this.streamResponse && this.aiProvider.sendMessageStream) {
-        nextStepResponse = await this.retryRequest(() =>
+      // If no tool was executed, get user input instead
+      if (!toolExecutionResult) {
+        const userResponse = await this.userInputHandler(
+          this.lastAgentResponse
+        );
+        toolExecutionResult = `User response: ${userResponse}`;
+      }
+
+      // Send tool execution result back to AI
+      if (this.useStreamResponse && this.aiProvider.sendMessageStream) {
+        currentResponse = await this.retryRequest(() =>
           this.aiProvider.sendMessageStream!(
-            this.frontPlannerChat,
-            `${toolOutput}`,
-            this.onResponseChunk
+            this.agentChat,
+            toolExecutionResult,
+            this.responseChunkHandler
           )
         );
       } else {
-        nextStepResponse = await this.retryRequest(() =>
-          this.aiProvider.sendMessage(this.frontPlannerChat, `${toolOutput}`)
+        currentResponse = await this.retryRequest(() =>
+          this.aiProvider.sendMessage(this.agentChat, toolExecutionResult)
         );
       }
 
-      response = nextStepResponse.trim();
+      this.lastAgentResponse = currentResponse.trim();
     }
 
-    return "task finished";
+    return "Task completed successfully";
   }
 
   // Method to get the last response
   getLastResponse(): string {
-    // This would need to be implemented by storing the last response
-    // For now, we'll return a placeholder
-    return "Last response not available";
+    return this.lastAgentResponse || "No response available";
   }
-}
-
-if (require.main === module) {
-  async function main() {
-    const agent = new CodeAgent();
-    await agent.initialize();
-  }
-
-  main().catch(console.error);
 }
 
 export default CodeAgent;
