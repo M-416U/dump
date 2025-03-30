@@ -16,7 +16,10 @@ const DEFAULT_AI_CONFIG = {
   model: "gemini-2.0-flash",
   apiKey: "AIzaSyDs0ghsn-0UviJ4K0zUFxcWi17X_rmm_AQ",
 };
-
+interface ChatMessage {
+  role: "user" | "assistant";
+  content: string;
+}
 export interface CodeAgentConfig {
   aiProvider?: string;
   aiModel?: string;
@@ -40,7 +43,7 @@ export class CodeAgent {
   private useStreamResponse: boolean;
   private responseChunkHandler: (chunk: string) => void;
   private lastAgentResponse: string = "";
-
+  private chatHistory: ChatMessage[] = [];
   constructor(config: CodeAgentConfig = {}) {
     if (config.codebase === undefined) {
       throw new Error("Codebase path is required");
@@ -64,7 +67,10 @@ export class CodeAgent {
       return this.userInputHandler(question);
     };
   }
-
+  private async recreateChat(): Promise<void> {
+    const oldChat = this.chatHistory;
+    this.agentChat = this.aiProvider.startChat(oldChat);
+  }
   async initialize(): Promise<void> {
     if (!fs.existsSync(this.codebasePath)) {
       fs.mkdirSync(this.codebasePath, { recursive: true });
@@ -79,7 +85,7 @@ export class CodeAgent {
       {
         apiKey: DEFAULT_AI_CONFIG.apiKey,
         model: DEFAULT_AI_CONFIG.model,
-        systemInstruction: enhancedPrompt.replace(
+        systemInstruction: lander.replace(
           "{{MCPTOOLS}}",
           JSON.stringify(availableTools).replace(/\s/g, "")
         ),
@@ -105,8 +111,13 @@ export class CodeAgent {
         if (error.status === 429 || error.message.includes("429")) {
           if (this.isVerbose) {
             console.log("Rate limit (429) detected, waiting for 2 minutes...");
+            console.log(
+              "creating new chat... with history:",
+              this.chatHistory.length
+            );
           }
           await new Promise((resolve) => setTimeout(resolve, 120000));
+          await this.recreateChat();
         } else if (attempt === maxRetries) {
           throw new Error("Max retries reached. API request failed.");
         } else {
@@ -120,9 +131,12 @@ export class CodeAgent {
 
   async processTask(taskDescription: string): Promise<string> {
     // Initial message with task description and codebase files
-    const initialPrompt = `${taskDescription}\n\n${this.toolService.listCodebaseFiles()}`;
+    const initialPrompt = taskDescription;
     let currentResponse: string;
-
+    this.chatHistory.push({
+      role: "user",
+      content: JSON.stringify(initialPrompt),
+    });
     // Send initial message to AI
     if (this.useStreamResponse && this.aiProvider.sendMessageStream) {
       currentResponse = await this.retryRequest(() =>
@@ -140,7 +154,10 @@ export class CodeAgent {
 
     this.lastAgentResponse = currentResponse.trim();
     let iterationCount = 0;
-
+    this.chatHistory.push({
+      role: "assistant",
+      content: this.lastAgentResponse,
+    });
     // Main agent loop
     while (iterationCount < this.maxIterationCount) {
       iterationCount++;
@@ -155,9 +172,9 @@ export class CodeAgent {
         const userResponse = await this.userInputHandler(
           this.lastAgentResponse
         );
-        toolExecutionResult = `User response: ${userResponse}`;
+        toolExecutionResult = userResponse;
       }
-
+      this.chatHistory.push({ role: "user", content: toolExecutionResult });
       // Send tool execution result back to AI
       if (this.useStreamResponse && this.aiProvider.sendMessageStream) {
         currentResponse = await this.retryRequest(() =>
@@ -182,6 +199,9 @@ export class CodeAgent {
   // Method to get the last response
   getLastResponse(): string {
     return this.lastAgentResponse || "No response available";
+  }
+  getChatHistory(): ChatMessage[] {
+    return this.chatHistory;
   }
 }
 

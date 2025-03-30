@@ -8,7 +8,7 @@ export interface AIProviderConfig {
 }
 
 export interface AIProvider {
-  startChat(): any;
+  startChat(history?: any): any;
   sendMessage(chat: any, message: string): Promise<string>;
   sendMessageStream?(
     chat: any,

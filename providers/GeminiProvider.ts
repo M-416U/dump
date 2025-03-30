@@ -109,7 +109,6 @@ export class GeminiProvider implements AIProvider {
     const textPart = typeof content === "string" ? content : content.text;
     const countResult = await this.generativeModel.countTokens(textPart);
     this.inputTokens += countResult.totalTokens;
-
     const response = await chat.sendMessage(parts);
 
     // Get token usage from the response metadata
@@ -132,7 +131,6 @@ export class GeminiProvider implements AIProvider {
     const textPart = typeof content === "string" ? content : content.text;
     const countResult = await this.generativeModel.countTokens(textPart);
     this.inputTokens += countResult.totalTokens;
-
     const responseStream = await chat.sendMessageStream(parts);
     let fullResponse = "";
 

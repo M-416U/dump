@@ -1,4 +1,5 @@
-import { toolDescriptions } from "./toolsPrompt";
+// import { toolDescriptions } from "./toolsPrompt";
+import { toolsPromptAsjson as toolDescriptions } from "./toolsPrompt";
 import { uiInstructions } from "./uiPrompt";
 
 // export const aiInstructionPrompt = `

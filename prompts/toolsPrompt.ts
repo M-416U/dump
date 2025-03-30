@@ -244,3 +244,175 @@ When you need to use a tool, wrap it in \`<MCP></MCP>\` and respond in **structu
 - **Only one tool can be used at a time.**  
 - **Ensure the \`args\` object follows the defined JSON schema for the tool.**  
 `;
+
+export const toolsPromptAsjson = `
+## **Tools Documentation**
+
+${JSON.stringify(
+  {
+    tools: {
+      READFILE: {
+        purpose: "Read the content of a file",
+        input: {
+          path: {
+            type: "string",
+            description: "Relative file path",
+            required: true,
+          },
+        },
+        output: "File content or 'File not found'",
+        example: "<READFILE>/src/index.js</READFILE>",
+      },
+      COMMAND: {
+        purpose: "Execute a shell command",
+        input: {
+          command: {
+            type: "string",
+            description: "Command to execute",
+            required: true,
+          },
+        },
+        output: "Command result or error",
+        example: "<COMMAND>ls</COMMAND>",
+      },
+      ASKUSER: {
+        purpose: "Get input from user",
+        input: {
+          question: {
+            type: "string",
+            description: "Question to ask the user",
+            required: true,
+          },
+        },
+        output: "User input",
+        example: "<ASKUSER>What framework do you want to use?</ASKUSER>",
+      },
+      CODE: {
+        purpose: "Generate new files or delete files only",
+        input: {
+          diffblocks: {
+            type: "array",
+            description: "One or more DIFFBLOCK elements",
+            required: true,
+          },
+        },
+        rules: [
+          "Use EXCLUSIVELY for creating files for the first time or deleting files",
+          "DO USE + and - symbols in blocks following git-style diff format",
+          "Wrap each file's diff in a separate DIFFBLOCK",
+        ],
+        output: "Code processed successfully or error",
+        examples: {
+          create: {
+            description: "Creating a new file",
+            template: `<CODE>
+<DIFFBLOCK>
+new file mode 100644
+--- /dev/null
++++ b/config.js
+@@-0,0 +1,2 @@
++const config = {};
++module.exports = config;
+</DIFFBLOCK>
+</CODE>`,
+          },
+          delete: {
+            description: "Deleting a file",
+            template: `<CODE>
+<DIFFBLOCK>
+deleted file mode 100644
+--- a/config.js
++++ /dev/null
+</DIFFBLOCK>
+</CODE>`,
+          },
+        },
+      },
+      REPLACEINFILE: {
+        purpose: "Replace sections of content in existing files",
+        input: {
+          path: {
+            type: "string",
+            description:
+              "Path of file to modify (relative to working directory)",
+            required: true,
+          },
+          blocks: {
+            type: "array",
+            description: "SEARCH/REPLACE blocks",
+            format: {
+              search: "Exact content to find",
+              separator: "=======",
+              replace: "New content to replace with",
+            },
+            required: true,
+          },
+        },
+        rules: {
+          matching: [
+            "Match character-for-character including whitespace and indentation",
+            "Include all comments and docstrings",
+            "Only first match occurrence will be replaced",
+            "every SEARCH must have closing REPLACE tag between them `=======`",
+          ],
+          blocks: [
+            "Keep blocks concise",
+            "Include just changing lines plus minimal context",
+            "List blocks in file order",
+            "Never truncate lines",
+          ],
+          special: {
+            moveCode: "Use two blocks (delete + insert)",
+            deleteCode: "Use empty REPLACE section",
+          },
+        },
+        example: `<REPLACEINFILE>
+<path>/src/App.jsx</path>
+<blocks>
+<<<<<<< SEARCH
+const title = "Old Title";
+=======
+const title = "New Title";
+>>>>>>> REPLACE
+</blocks>
+</REPLACEINFILE>`,
+      },
+      LISTFILES: {
+        purpose: "List all files in the project",
+        input: {},
+        output: "List of file names",
+        example: "<LISTFILES></LISTFILES>",
+      },
+      WRITETOFILE: {
+        purpose: "Write content to a file (create or overwrite)",
+        input: {
+          path: {
+            type: "string",
+            description: "File path",
+            required: true,
+          },
+          content: {
+            type: "string",
+            description: "Content to write",
+            required: true,
+          },
+        },
+        output: "File written successfully or error",
+        example: `<WRITETOFILE>
+<path>/src/data.json</path>
+<content>{"key": "value"}</content>
+</WRITETOFILE>`,
+      },
+    },
+  },
+  null,
+  2
+)}
+
+## **Global Rules**
+1. Only one tool can be used at a time
+2. Always ensure consistent formatting
+3. Run linting after generation
+4. Never assume unknown information
+5. Every SEARCH must have a REPLACE
+`;
