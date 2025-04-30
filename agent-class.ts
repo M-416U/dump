@@ -14,7 +14,7 @@ import { lander } from "./prompts/uiPrompt";
 const DEFAULT_AI_CONFIG = {
   provider: "gemini",
   model: "gemini-2.0-flash",
-  apiKey: "AIzaSyDs0ghsn-0UviJ4K0zUFxcWi17X_rmm_AQ",
+  apiKey: "__gemini__api__key__",
 };
 interface ChatMessage {
   role: "user" | "assistant";
